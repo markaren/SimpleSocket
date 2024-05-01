@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 void socketHandler(std::unique_ptr<Connection> conn) {
     size_t n;
