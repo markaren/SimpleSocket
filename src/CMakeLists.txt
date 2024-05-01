@@ -3,7 +3,7 @@ set(sources
     "Socket.cpp"
 )
 
-add_library(simple_socket Socket.cpp)
+add_library(simple_socket ${sources})
 target_include_directories(simple_socket
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"
