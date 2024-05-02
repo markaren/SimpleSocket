@@ -1,9 +1,9 @@
 #include "Socket.hpp"
 
+#include <atomic>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <atomic>
 
 void socketHandler(std::unique_ptr<Connection> conn) {
     size_t n;
@@ -27,7 +27,7 @@ int main() {
             std::unique_ptr<Connection> conn;
             try {
                 conn = server.accept();
-            } catch (const std::exception &e) {
+            } catch (const std::exception& e) {
                 continue;
             }
 
