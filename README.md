@@ -11,9 +11,9 @@ set(SIMPLE_SOCKET_BUILD_TESTS OFF)
 FetchContent_Declare(
         SimpleSocket
         GIT_REPOSITORY https://github.com/markaren/SimpleSocket.git
-        GIT_TAG a80b83260ec8bb598d0dd018d035685375eb3e5f
+        GIT_TAG tag_or_commit_hash
 )
 FetchContent_MakeAvailable(SimpleSocket)
 
-target_link_libraries(<target> PRIVATE simple_socket)
+target_link_libraries(some_target PRIVATE simple_socket)
 ```
