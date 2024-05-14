@@ -10,11 +10,9 @@
 
 class Connection {
 public:
-    virtual bool read(std::vector<unsigned char>& buffer,
-                      size_t* bytesRead = nullptr) = 0;
+    virtual bool read(std::vector<unsigned char>& buffer, size_t* bytesRead = nullptr) = 0;
 
-    virtual bool read(unsigned char* buffer, size_t size,
-                      size_t* bytesRead = nullptr) = 0;
+    virtual bool read(unsigned char* buffer, size_t size, size_t* bytesRead = nullptr) = 0;
 
     virtual bool readExact(std::vector<unsigned char>& buffer) = 0;
 

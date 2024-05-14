@@ -33,6 +33,7 @@ namespace {
 
         REQUIRE(conn->write(generateResponse(msg)));
     }
+
 }// namespace
 
 TEST_CASE("socketlib read") {

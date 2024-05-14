@@ -23,7 +23,7 @@ struct Socket::Impl {
             throw std::runtime_error("Failed to initialize winsock");
         }
 #endif
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     }
 
     bool connect(const std::string& ip, int port) {

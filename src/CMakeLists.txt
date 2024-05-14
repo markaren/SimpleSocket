@@ -1,9 +1,5 @@
 
-set(sources
-    "Socket.cpp"
-)
-
-add_library(simple_socket ${sources})
+add_library(simple_socket socket.cpp UDPSocket.cpp)
 target_compile_features(simple_socket PUBLIC "cxx_std_17")
 
 if (WIN32)
