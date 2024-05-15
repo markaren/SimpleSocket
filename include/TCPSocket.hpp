@@ -25,9 +25,9 @@ public:
     virtual ~Connection() = default;
 };
 
-class Socket: public Connection {
+class TCPSocket: public Connection {
 public:
-    Socket();
+    TCPSocket();
 
     bool read(std::vector<unsigned char>& buffer, size_t* bytesRead) override;
 
@@ -43,7 +43,7 @@ public:
 
     void close();
 
-    ~Socket() override;
+    ~TCPSocket() override;
 
 protected:
     void bind(int port);
@@ -59,12 +59,12 @@ private:
     std::unique_ptr<Impl> pimpl_;
 };
 
-class ClientSocket: public Socket {
+class TCPClient: public TCPSocket {
 public:
     bool connect(const std::string& ip, int port);
 };
 
-class ServerSocket: public Socket {
+class TCPServer: public TCPSocket {
 public:
     void bind(int port);
 

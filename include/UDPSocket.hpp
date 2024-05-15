@@ -9,9 +9,9 @@
 
 class UDPSocket{
 public:
-    UDPSocket();
+    UDPSocket(int port);
 
-    void sendTo(const std::string& address, uint16_t port, const std::string& data);
+    bool sendTo(const std::string& address, uint16_t port, const std::string& data);
 
     int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer);
 

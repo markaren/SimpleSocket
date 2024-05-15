@@ -1,5 +1,5 @@
 
-#include "Socket.hpp"
+#include "TCPSocket.hpp"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -14,7 +14,7 @@ using SOCKET = int;
 #include <iostream>
 #include <stdexcept>
 
-struct Socket::Impl {
+struct TCPSocket::Impl {
 
     Impl() {
 #ifdef _WIN32
@@ -78,7 +78,7 @@ struct Socket::Impl {
         }
 #endif
 
-        auto conn = std::make_unique<Socket>();
+        auto conn = std::make_unique<TCPSocket>();
         conn->pimpl_->assign(new_sock);
 
         return conn;
@@ -174,81 +174,81 @@ private:
     bool closed{false};
 };
 
-Socket::Socket(): pimpl_(std::make_unique<Impl>()) {}
+TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}
 
-bool Socket::read(std::vector<unsigned char>& buffer, size_t* bytesRead) {
+bool TCPSocket::read(std::vector<unsigned char>& buffer, size_t* bytesRead) {
 
     return pimpl_->read(buffer.data(), buffer.size(), bytesRead);
 }
 
-bool Socket::read(unsigned char* buffer, size_t size, size_t* bytesRead) {
+bool TCPSocket::read(unsigned char* buffer, size_t size, size_t* bytesRead) {
 
     return pimpl_->read(buffer, size, bytesRead);
 }
 
-bool Socket::readExact(std::vector<unsigned char>& buffer) {
+bool TCPSocket::readExact(std::vector<unsigned char>& buffer) {
 
     return pimpl_->readExact(buffer.data(), buffer.size());
 }
 
-bool Socket::readExact(unsigned char* buffer, size_t size) {
+bool TCPSocket::readExact(unsigned char* buffer, size_t size) {
 
     return pimpl_->readExact(buffer, size);
 }
 
-bool Socket::write(const std::string& buffer) {
+bool TCPSocket::write(const std::string& buffer) {
 
     return pimpl_->write(buffer);
 }
 
-bool Socket::write(const std::vector<unsigned char>& buffer) {
+bool TCPSocket::write(const std::vector<unsigned char>& buffer) {
 
     return pimpl_->write(buffer);
 }
 
-bool Socket::connect(const std::string& ip, int port) {
+bool TCPSocket::connect(const std::string& ip, int port) {
 
     return pimpl_->connect(ip, port);
 }
 
-void Socket::bind(int port) {
+void TCPSocket::bind(int port) {
 
     pimpl_->bind(port);
 }
 
-void Socket::listen(int backlog) {
+void TCPSocket::listen(int backlog) {
 
     pimpl_->listen(backlog);
 }
 
-std::unique_ptr<Connection> Socket::accept() {
+std::unique_ptr<Connection> TCPSocket::accept() {
 
     return pimpl_->accept();
 }
 
-void Socket::close() {
+void TCPSocket::close() {
 
     pimpl_->close();
 }
 
-Socket::~Socket() = default;
+TCPSocket::~TCPSocket() = default;
 
-bool ClientSocket::connect(const std::string& ip, int port) {
+bool TCPClient::connect(const std::string& ip, int port) {
 
-    return Socket::connect(ip, port);
+    return TCPSocket::connect(ip, port);
 }
 
-void ServerSocket::bind(int port) {
+void TCPServer::bind(int port) {
 
-    Socket::bind(port);
+    TCPSocket::bind(port);
 }
 
-void ServerSocket::listen(int backlog) {
+void TCPServer::listen(int backlog) {
 
-    Socket::listen(backlog);
+    TCPSocket::listen(backlog);
 }
 
-std::unique_ptr<Connection> ServerSocket::accept() {
+std::unique_ptr<Connection> TCPServer::accept() {
 
-    return Socket::accept();
+    return TCPSocket::accept();
 }
