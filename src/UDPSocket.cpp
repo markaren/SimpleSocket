@@ -18,16 +18,8 @@
 
 struct UDPSocket::Impl {
 
-    explicit Impl(int port) {
-#ifdef _WIN32
-        WSADATA wsaData;
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+    explicit Impl(int port): sockfd(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
 
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to initialize winsock");
-        }
-#endif
-
-        sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sockfd == INVALID_SOCKET) {
 #ifdef _WIN32
             throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to create socket");
@@ -48,9 +40,6 @@ struct UDPSocket::Impl {
             throw std::system_error(errno, std::generic_category(), "Bind failed");
 #endif
         }
-    }
-
-    void bind(int port) {
     }
 
     bool sendTo(const std::string& address, uint16_t port, const std::string& data) {
@@ -94,9 +83,6 @@ struct UDPSocket::Impl {
     }
     ~Impl() {
         close();
-#ifdef _WIN32
-        WSACleanup();
-#endif
     }
 
 private:

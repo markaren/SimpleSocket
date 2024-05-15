@@ -1,4 +1,5 @@
 #include "TCPSocket.hpp"
+#include "WSASession.hpp"
 
 #include <atomic>
 #include <iostream>
@@ -17,9 +18,9 @@ void socketHandler(std::unique_ptr<Connection> conn) {
 
 int main() {
 
-    TCPServer server;
-    server.bind(8080);
-    server.listen();
+    WSASession session;
+
+    TCPServer server(8080);
 
     std::atomic_bool stop = false;
     std::thread t([&] {

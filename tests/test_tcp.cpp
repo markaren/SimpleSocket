@@ -1,5 +1,6 @@
 
 #include "TCPSocket.hpp"
+#include "WSASession.hpp"
 
 #include <thread>
 #include <vector>
@@ -39,11 +40,12 @@ TEST_CASE("TCP read/write") {
 
     int port = 8080;
 
+    WSASession session;
+
     TCPServer server(port);
     TCPClient client;
 
     std::thread serverThread([&server] {
-
         std::unique_ptr<Connection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
@@ -78,11 +80,12 @@ TEST_CASE("TCP readexact/write") {
 
     int port = 8080;
 
+    WSASession session;
+
     TCPServer server(port);
     TCPClient client;
 
     std::thread serverThread([&server] {
-
         std::unique_ptr<Connection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));

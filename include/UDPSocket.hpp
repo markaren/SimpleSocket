@@ -9,7 +9,7 @@
 
 class UDPSocket{
 public:
-    UDPSocket(int port);
+    explicit UDPSocket(int port);
 
     bool sendTo(const std::string& address, uint16_t port, const std::string& data);
 

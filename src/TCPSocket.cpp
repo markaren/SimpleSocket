@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 using SOCKET = int;
+#define INVALID_SOCKET (SOCKET)(~0)
+#define SOCKET_ERROR (-1)
 #endif
 
 #include <iostream>
@@ -16,14 +18,14 @@ using SOCKET = int;
 
 struct TCPSocket::Impl {
 
-    Impl() {
+    Impl(): sockfd(socket(AF_INET, SOCK_STREAM, 0)) {
+        if (sockfd == INVALID_SOCKET) {
 #ifdef _WIN32
-        WSADATA wsaData;
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-            throw std::runtime_error("Failed to initialize winsock");
-        }
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to create socket");
+#else
+            throw std::system_error(errno, std::generic_category(), "Failed to create socket");
 #endif
-        sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        }
     }
 
     bool connect(const std::string& ip, int port) {
@@ -58,6 +60,7 @@ struct TCPSocket::Impl {
     void listen(int backlog) {
 
         if (::listen(sockfd, backlog) < 0) {
+
             throw std::runtime_error("Listen failed");
         }
     }
@@ -163,10 +166,6 @@ struct TCPSocket::Impl {
     ~Impl() {
 
         close();
-
-#ifdef _WIN32
-        WSACleanup();
-#endif
     }
 
 private:

@@ -1,10 +1,13 @@
 
 #include "TCPSocket.hpp"
+#include "WSASession.hpp"
 
 #include <iostream>
 #include <vector>
 
 int main() {
+
+    WSASession session;
 
     TCPClient client;
     if (client.connect("127.0.0.1", 8080)) {
