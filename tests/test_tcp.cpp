@@ -37,14 +37,12 @@ namespace {
 
 TEST_CASE("TCP read/write") {
 
-    TCPServer server;
-    TCPClient client;
-
     int port = 8080;
 
-    std::thread serverThread([&server, port] {
-        server.bind(port);
-        server.listen();
+    TCPServer server(port);
+    TCPClient client;
+
+    std::thread serverThread([&server] {
 
         std::unique_ptr<Connection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
@@ -78,14 +76,12 @@ TEST_CASE("TCP read/write") {
 
 TEST_CASE("TCP readexact/write") {
 
-    TCPServer server;
-    TCPClient client;
-
     int port = 8080;
 
-    std::thread serverThread([&server, port] {
-        server.bind(port);
-        server.listen();
+    TCPServer server(port);
+    TCPClient client;
+
+    std::thread serverThread([&server] {
 
         std::unique_ptr<Connection> conn;
         REQUIRE_NOTHROW(conn = server.accept());

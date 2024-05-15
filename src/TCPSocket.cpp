@@ -206,26 +206,6 @@ bool TCPSocket::write(const std::vector<unsigned char>& buffer) {
     return pimpl_->write(buffer);
 }
 
-bool TCPSocket::connect(const std::string& ip, int port) {
-
-    return pimpl_->connect(ip, port);
-}
-
-void TCPSocket::bind(int port) {
-
-    pimpl_->bind(port);
-}
-
-void TCPSocket::listen(int backlog) {
-
-    pimpl_->listen(backlog);
-}
-
-std::unique_ptr<Connection> TCPSocket::accept() {
-
-    return pimpl_->accept();
-}
-
 void TCPSocket::close() {
 
     pimpl_->close();
@@ -235,20 +215,15 @@ TCPSocket::~TCPSocket() = default;
 
 bool TCPClient::connect(const std::string& ip, int port) {
 
-    return TCPSocket::connect(ip, port);
-}
-
-void TCPServer::bind(int port) {
-
-    TCPSocket::bind(port);
-}
-
-void TCPServer::listen(int backlog) {
-
-    TCPSocket::listen(backlog);
+    return pimpl_->connect(ip, port);
 }
 
 std::unique_ptr<Connection> TCPServer::accept() {
 
-    return TCPSocket::accept();
+    return pimpl_->accept();
+}
+
+TCPServer::TCPServer(int port, int backlog) {
+    pimpl_->bind(port);
+    pimpl_->listen(backlog);
 }

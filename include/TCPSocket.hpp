@@ -45,16 +45,10 @@ public:
 
     ~TCPSocket() override;
 
-protected:
-    void bind(int port);
-
-    void listen(int backlog = 1);
-
-    std::unique_ptr<Connection> accept();
-
-    bool connect(const std::string& ip, int port);
-
 private:
+    friend class TCPClient;
+    friend class TCPServer;
+
     struct Impl;
     std::unique_ptr<Impl> pimpl_;
 };
@@ -66,9 +60,7 @@ public:
 
 class TCPServer: public TCPSocket {
 public:
-    void bind(int port);
-
-    void listen(int backlog = 1);
+    explicit TCPServer(int port, int backlog = 1);
 
     std::unique_ptr<Connection> accept();
 };
