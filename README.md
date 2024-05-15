@@ -1,6 +1,6 @@
 # SimpleSocket
 
-A simple cross-platform Socket implementation for C++ (no external dependencies) 
+A simple cross-platform Socket (TCP/UDP) implementation for C++ (no external dependencies) 
 for education and hobby usage.
 
 

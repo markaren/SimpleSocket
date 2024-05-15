@@ -1,12 +1,12 @@
 
-#include "Socket.hpp"
+#include "TCPSocket.hpp"
 
 #include <iostream>
 #include <vector>
 
 int main() {
 
-    ClientSocket client;
+    TCPClient client;
     if (client.connect("127.0.0.1", 8080)) {
 
         std::string message = "Per";

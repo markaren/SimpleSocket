@@ -1,4 +1,4 @@
-#include "Socket.hpp"
+#include "TCPSocket.hpp"
 
 #include <atomic>
 #include <iostream>
@@ -17,7 +17,7 @@ void socketHandler(std::unique_ptr<Connection> conn) {
 
 int main() {
 
-    ServerSocket server;
+    TCPServer server;
     server.bind(8080);
     server.listen();
 

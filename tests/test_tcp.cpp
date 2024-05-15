@@ -1,7 +1,6 @@
 
-#include "Socket.hpp"
+#include "TCPSocket.hpp"
 
-#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -33,15 +32,18 @@ namespace {
 
         REQUIRE(conn->write(generateResponse(msg)));
     }
+
 }// namespace
 
-TEST_CASE("socketlib read") {
+TEST_CASE("TCP read/write") {
 
-    ServerSocket server;
-    ClientSocket client;
+    TCPServer server;
+    TCPClient client;
 
-    std::thread serverThread([&server] {
-        server.bind(8080);
+    int port = 8080;
+
+    std::thread serverThread([&server, port] {
+        server.bind(port);
         server.listen();
 
         std::unique_ptr<Connection> conn;
@@ -51,10 +53,10 @@ TEST_CASE("socketlib read") {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::thread clientThread([&client] {
-        REQUIRE(client.connect("127.0.0.1", 8080));
+    std::thread clientThread([&client, port] {
+        REQUIRE(client.connect("127.0.0.1", port));
 
-        std::string message = "Per";
+        std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
 
         client.write(message);
@@ -74,13 +76,15 @@ TEST_CASE("socketlib read") {
     serverThread.join();
 }
 
-TEST_CASE("socketlib readexact") {
+TEST_CASE("TCP readexact/write") {
 
-    ServerSocket server;
-    ClientSocket client;
+    TCPServer server;
+    TCPClient client;
 
-    std::thread serverThread([&server] {
-        server.bind(8080);
+    int port = 8080;
+
+    std::thread serverThread([&server, port] {
+        server.bind(port);
         server.listen();
 
         std::unique_ptr<Connection> conn;
@@ -90,10 +94,10 @@ TEST_CASE("socketlib readexact") {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::thread clientThread([&client] {
-        REQUIRE(client.connect("127.0.0.1", 8080));
+    std::thread clientThread([&client, port] {
+        REQUIRE(client.connect("127.0.0.1", port));
 
-        std::string message = "Per";
+        std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
         client.write(message);
 
