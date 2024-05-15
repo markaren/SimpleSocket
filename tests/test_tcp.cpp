@@ -68,7 +68,6 @@ TEST_CASE("TCP read/write") {
         CHECK(response == expectedResponse);
     });
 
-
     clientThread.join();
     client.close();
 

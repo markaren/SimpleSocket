@@ -14,17 +14,24 @@ using SOCKET = int;
 #endif
 
 #include <iostream>
-#include <stdexcept>
+
+namespace {
+
+    void throwError(const std::string& msg) {
+#ifdef _WIN32
+        throw std::system_error(WSAGetLastError(), std::system_category(), msg);
+#else
+        throw std::system_error(errno, std::generic_category(), msg);
+#endif
+    }
+
+}// namespace
 
 struct TCPSocket::Impl {
 
-    Impl(): sockfd(socket(AF_INET, SOCK_STREAM, 0)) {
+    Impl(): sockfd(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
         if (sockfd == INVALID_SOCKET) {
-#ifdef _WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to create socket");
-#else
-            throw std::system_error(errno, std::generic_category(), "Failed to create socket");
-#endif
+            throwError("Failed to create socket");
         }
 
         const int optval = 1;
@@ -56,11 +63,7 @@ struct TCPSocket::Impl {
 
         if (::bind(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
-#ifdef _WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Bind failed");
-#else
-            throw std::system_error(errno, std::generic_category(), "Bind failed");
-#endif
+            throwError("Bind failed");
         }
     }
 
@@ -68,11 +71,7 @@ struct TCPSocket::Impl {
 
         if (::listen(sockfd, backlog) < 0) {
 
-#ifdef _WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Listen failed");
-#else
-            throw std::system_error(errno, std::generic_category(), "Listen failed");
-#endif
+            throwError("Listen failed");
         }
     }
 
@@ -83,11 +82,8 @@ struct TCPSocket::Impl {
         SOCKET new_sock = ::accept(sockfd, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
 
         if (new_sock == INVALID_SOCKET) {
-#ifdef _WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Accept failed");
-#else
-            throw std::system_error(errno, std::generic_category(), "Accept failed");
-#endif
+
+            throwError("Accept failed");
         }
 
         auto conn = std::make_unique<TCPSocket>();
@@ -101,7 +97,7 @@ struct TCPSocket::Impl {
 #ifdef _WIN32
         auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
 #else
-        auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
+        auto read = ::read(sockfd, buffer, size);
 #endif
         if (bytesRead) *bytesRead = read;
 
@@ -115,7 +111,7 @@ struct TCPSocket::Impl {
 #ifdef _WIN32
             auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
 #else
-            auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
+            auto read = ::read(sockfd, buffer, size);
 #endif
             if (read == SOCKET_ERROR || read == 0) {
 
@@ -175,7 +171,7 @@ TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}
 int TCPSocket::read(std::vector<unsigned char>& buffer) {
 
     size_t bytesRead = 0;
-    auto success = pimpl_->read(buffer.data(), buffer.size(), &bytesRead);
+    const auto success = pimpl_->read(buffer.data(), buffer.size(), &bytesRead);
 
     return success ? static_cast<int>(bytesRead) : -1;
 }
@@ -183,7 +179,7 @@ int TCPSocket::read(std::vector<unsigned char>& buffer) {
 int TCPSocket::read(unsigned char* buffer, size_t size) {
 
     size_t bytesRead = 0;
-    auto success = pimpl_->read(buffer, size, &bytesRead);
+    const auto success = pimpl_->read(buffer, size, &bytesRead);
 
     return success ? static_cast<int>(bytesRead) : -1;
 }
@@ -199,6 +195,8 @@ bool TCPSocket::readExact(unsigned char* buffer, size_t size) {
 }
 
 bool TCPSocket::write(const std::string& buffer) {
+
+    if (buffer.empty()) return false;
 
     return pimpl_->write(buffer);
 }
