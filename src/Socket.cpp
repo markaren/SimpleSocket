@@ -34,8 +34,7 @@ struct Socket::Impl {
 
             return false;
         }
-        if (::connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) <
-            0) {
+        if (::connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) {
 
             return false;
         }
@@ -51,8 +50,8 @@ struct Socket::Impl {
         serv_addr.sin_port = htons(port);
 
         if (::bind(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) {
-            std::cerr << "Bind failed" << std::endl;
-            exit(1);
+
+            throw std::runtime_error("Bind failed");
         }
     }
 
@@ -67,8 +66,7 @@ struct Socket::Impl {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
-        SOCKET new_sock =
-                ::accept(sockfd, (struct sockaddr*) &client_addr, &addrlen);
+        SOCKET new_sock = ::accept(sockfd, (struct sockaddr*) &client_addr, &addrlen);
 
 #ifdef _WIN32
         if (new_sock == INVALID_SOCKET) {
@@ -90,8 +88,10 @@ struct Socket::Impl {
 
 #ifdef _WIN32
         auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
-        if (bytesRead)
+        if (bytesRead) {
             *bytesRead = read;
+        }
+
         return read != SOCKET_ERROR && read != 0;
 #else
         auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
@@ -135,8 +135,7 @@ struct Socket::Impl {
     bool write(const std::vector<unsigned char>& buffer) {
 
 #ifdef _WIN32
-        return send(sockfd, reinterpret_cast<const char*>(buffer.data()),
-                    buffer.size(), 0) != SOCKET_ERROR;
+        return send(sockfd, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0) != SOCKET_ERROR;
 #else
         return ::write(sockfd, buffer.data(), buffer.size()) != -1;
 #endif
@@ -197,7 +196,10 @@ bool Socket::readExact(unsigned char* buffer, size_t size) {
     return pimpl_->readExact(buffer, size);
 }
 
-bool Socket::write(const std::string& buffer) { return pimpl_->write(buffer); }
+bool Socket::write(const std::string& buffer) {
+
+    return pimpl_->write(buffer);
+}
 
 bool Socket::write(const std::vector<unsigned char>& buffer) {
 
@@ -209,13 +211,25 @@ bool Socket::connect(const std::string& ip, int port) {
     return pimpl_->connect(ip, port);
 }
 
-void Socket::bind(int port) { pimpl_->bind(port); }
+void Socket::bind(int port) {
 
-void Socket::listen(int backlog) { pimpl_->listen(backlog); }
+    pimpl_->bind(port);
+}
 
-std::unique_ptr<Connection> Socket::accept() { return pimpl_->accept(); }
+void Socket::listen(int backlog) {
 
-void Socket::close() { pimpl_->close(); }
+    pimpl_->listen(backlog);
+}
+
+std::unique_ptr<Connection> Socket::accept() {
+
+    return pimpl_->accept();
+}
+
+void Socket::close() {
+
+    pimpl_->close();
+}
 
 Socket::~Socket() = default;
 
@@ -224,8 +238,17 @@ bool ClientSocket::connect(const std::string& ip, int port) {
     return Socket::connect(ip, port);
 }
 
-void ServerSocket::bind(int port) { Socket::bind(port); }
+void ServerSocket::bind(int port) {
 
-void ServerSocket::listen(int backlog) { Socket::listen(backlog); }
+    Socket::bind(port);
+}
 
-std::unique_ptr<Connection> ServerSocket::accept() { return Socket::accept(); }
+void ServerSocket::listen(int backlog) {
+
+    Socket::listen(backlog);
+}
+
+std::unique_ptr<Connection> ServerSocket::accept() {
+
+    return Socket::accept();
+}
