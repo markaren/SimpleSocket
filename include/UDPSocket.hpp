@@ -13,19 +13,9 @@ public:
 
     void sendTo(const std::string& address, uint16_t port, const std::string& data);
 
-    std::string recvFrom();
+    int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer);
 
-    //    bool readFrom(std::vector<unsigned char>& buffer, size_t* bytesRead);
-//
-//    bool read(unsigned char* buffer, size_t size, size_t* bytesRead);
-//
-//    bool readExact(std::vector<unsigned char>& buffer);
-//
-//    bool readExact(unsigned char* buffer, size_t size);
-//
-//    bool write(const std::string& message);
-//
-//    bool write(const std::vector<unsigned char>& data);
+    void close();
 
     ~UDPSocket();
 

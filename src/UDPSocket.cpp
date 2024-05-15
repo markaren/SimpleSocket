@@ -30,17 +30,47 @@ struct UDPSocket::Impl {
     }
 
     bool sendTo(const std::string& address, uint16_t port, const std::string& data) {
-        sockaddr_in server{};
-        if (!inet_pton(AF_INET, address.c_str(), &server.sin_addr)) {
+        sockaddr_in to{};
+        to.sin_family = AF_INET;
+        to.sin_port = htons(port);
+        if (!inet_pton(AF_INET, address.c_str(), &to.sin_addr)) {
             return false;
         }
-        server.sin_family = AF_INET;
-        server.sin_port = htons(port);
 
-        return (sendto(sockfd, data.c_str(), data.size(), 0, (struct sockaddr*) &server, sizeof(server)) != SOCKET_ERROR);
+        return (sendto(sockfd, data.c_str(), data.size(), 0, (struct sockaddr*) &to, sizeof(to)) != SOCKET_ERROR);
+    }
+
+    int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) {
+        sockaddr_in from{};
+        from.sin_family = AF_INET;
+        from.sin_port = htons(port);
+        if (!inet_pton(AF_INET, address.c_str(), &from.sin_addr)) {
+            return false;
+        }
+        socklen_t fromLength = sizeof(from);
+
+        return recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, (struct sockaddr*) &from, &fromLength);
+    }
+
+    void close() {
+        if (!closed) {
+            closed = true;
+#ifdef _WIN32
+            closesocket(sockfd);
+#else
+            ::close(sockfd);
+#endif
+        }
+    }
+    ~Impl() {
+        close();
+#ifdef _WIN32
+        WSACleanup();
+#endif
     }
 
 private:
+    bool closed{false};
     SOCKET sockfd;
 };
 
@@ -53,16 +83,10 @@ void UDPSocket::sendTo(const std::string& address, uint16_t port, const std::str
     pimpl_->sendTo(address, port, data);
 }
 
-//std::string UDPSocket::recvFrom() {
-//    char buffer[1024];
-//    struct sockaddr_in from;
-//    socklen_t fromLength = sizeof(from);
-//
-//    int received = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&from, &fromLength);
-//    if (received == SOCKET_ERROR) {
-//        std::cerr << "recvfrom() failed";
-//        exit(-1);
-//    }
-//
-//    return std::string(buffer, received);
-//}
+int UDPSocket::recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) {
+
+    return pimpl_->recvFrom(address, port, buffer);
+}
+
+void UDPSocket::close() {
+}
