@@ -26,6 +26,9 @@ struct TCPSocket::Impl {
             throw std::system_error(errno, std::generic_category(), "Failed to create socket");
 #endif
         }
+
+        int optval = 1;
+        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval));
     }
 
     bool connect(const std::string& ip, int port) {
@@ -53,7 +56,11 @@ struct TCPSocket::Impl {
 
         if (::bind(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) {
 
-            throw std::runtime_error("Bind failed");
+#ifdef _WIN32
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Bind failed");
+#else
+            throw std::system_error(errno, std::generic_category(), "Bind failed");
+#endif
         }
     }
 
@@ -61,7 +68,11 @@ struct TCPSocket::Impl {
 
         if (::listen(sockfd, backlog) < 0) {
 
-            throw std::runtime_error("Listen failed");
+#ifdef _WIN32
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Listen failed");
+#else
+            throw std::system_error(errno, std::generic_category(), "Listen failed");
+#endif
         }
     }
 
