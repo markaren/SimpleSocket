@@ -82,15 +82,14 @@ struct TCPSocket::Impl {
         socklen_t addrlen = sizeof(client_addr);
         SOCKET new_sock = ::accept(sockfd, (struct sockaddr*) &client_addr, &addrlen);
 
-#ifdef _WIN32
+
         if (new_sock == INVALID_SOCKET) {
-            throw std::runtime_error("Accept failed");
-        }
+#ifdef _WIN32
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Accept failed");
 #else
-        if (new_sock < 0) {
-            throw std::runtime_error("Accept failed");
-        }
+            throw std::system_error(errno, std::generic_category(), "Accept failed");
 #endif
+        }
 
         auto conn = std::make_unique<TCPSocket>();
         conn->pimpl_->assign(new_sock);
@@ -105,11 +104,9 @@ struct TCPSocket::Impl {
 #else
         auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
 #endif
-        if (bytesRead) {
-            *bytesRead = read;
-        }
+        if (bytesRead) *bytesRead = read;
 
-        return read != SOCKET_ERROR;
+        return read != SOCKET_ERROR && read != 0;
     }
 
     bool readExact(unsigned char* buffer, size_t size) {
@@ -121,7 +118,8 @@ struct TCPSocket::Impl {
 #else
             auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
 #endif
-            if (read == SOCKET_ERROR) {
+            if (read == SOCKET_ERROR && read != 0) {
+
                 return false;
             }
             totalBytesReceived += read;
