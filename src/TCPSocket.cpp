@@ -91,17 +91,14 @@ struct TCPSocket::Impl {
 
 #ifdef _WIN32
         auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
+#else
+        auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
+#endif
         if (bytesRead) {
             *bytesRead = read;
         }
 
-        return read != SOCKET_ERROR && read != 0;
-#else
-        auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
-        if (bytesRead)
-            *bytesRead = read;
-        return read != -1;
-#endif
+        return read != SOCKET_ERROR;
     }
 
     bool readExact(unsigned char* buffer, size_t size) {
@@ -110,17 +107,13 @@ struct TCPSocket::Impl {
         while (totalBytesReceived < size) {
 #ifdef _WIN32
             auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
-            if (read == SOCKET_ERROR || read == 0) {
-                return false;
-            }
-            totalBytesReceived += read;
 #else
             auto read = ::read(sockfd, reinterpret_cast<char*>(buffer), size);
-            if (read == -1 || read == 0) {
+#endif
+            if (read == SOCKET_ERROR) {
                 return false;
             }
             totalBytesReceived += read;
-#endif
         }
 
         return true;
@@ -128,11 +121,7 @@ struct TCPSocket::Impl {
 
     bool write(const std::string& buffer) {
 
-#ifdef _WIN32
         return send(sockfd, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
-#else
-        return ::write(sockfd, buffer.data(), buffer.size()) != -1;
-#endif
     }
 
     bool write(const std::vector<unsigned char>& buffer) {
@@ -140,7 +129,7 @@ struct TCPSocket::Impl {
 #ifdef _WIN32
         return send(sockfd, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0) != SOCKET_ERROR;
 #else
-        return ::write(sockfd, buffer.data(), buffer.size()) != -1;
+        return ::write(sockfd, buffer.data(), buffer.size()) != SOCKET_ERROR;
 #endif
     }
 
@@ -175,14 +164,20 @@ private:
 
 TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}
 
-bool TCPSocket::read(std::vector<unsigned char>& buffer, size_t* bytesRead) {
+int TCPSocket::read(std::vector<unsigned char>& buffer) {
 
-    return pimpl_->read(buffer.data(), buffer.size(), bytesRead);
+    size_t bytesRead = 0;
+    auto success = pimpl_->read(buffer.data(), buffer.size(), &bytesRead);
+
+    return success ? static_cast<int>(bytesRead) : -1;
 }
 
-bool TCPSocket::read(unsigned char* buffer, size_t size, size_t* bytesRead) {
+int TCPSocket::read(unsigned char* buffer, size_t size) {
 
-    return pimpl_->read(buffer, size, bytesRead);
+    size_t bytesRead = 0;
+    auto success = pimpl_->read(buffer, size, &bytesRead);
+
+    return success ? static_cast<int>(bytesRead) : -1;
 }
 
 bool TCPSocket::readExact(std::vector<unsigned char>& buffer) {

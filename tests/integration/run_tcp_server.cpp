@@ -7,9 +7,9 @@
 #include <vector>
 
 void socketHandler(std::unique_ptr<Connection> conn) {
-    size_t n;
+
     std::vector<unsigned char> buffer(1024);
-    conn->read(buffer, &n);
+    auto n = conn->read(buffer);
 
     std::string msg(buffer.begin(), buffer.begin() + static_cast<int>(n));
     std::cout << "Received from client: " << msg << std::endl;

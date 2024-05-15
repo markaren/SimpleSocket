@@ -10,9 +10,9 @@
 
 class Connection {
 public:
-    virtual bool read(std::vector<unsigned char>& buffer, size_t* bytesRead = nullptr) = 0;
+    virtual int read(std::vector<unsigned char>& buffer) = 0;
 
-    virtual bool read(unsigned char* buffer, size_t size, size_t* bytesRead = nullptr) = 0;
+    virtual int read(unsigned char* buffer, size_t size) = 0;
 
     virtual bool readExact(std::vector<unsigned char>& buffer) = 0;
 
@@ -29,9 +29,9 @@ class TCPSocket: public Connection {
 public:
     TCPSocket();
 
-    bool read(std::vector<unsigned char>& buffer, size_t* bytesRead) override;
+    int read(std::vector<unsigned char>& buffer) override;
 
-    bool read(unsigned char* buffer, size_t size, size_t* bytesRead) override;
+    int read(unsigned char* buffer, size_t size) override;
 
     bool readExact(std::vector<unsigned char>& buffer) override;
 

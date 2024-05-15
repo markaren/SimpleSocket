@@ -15,9 +15,8 @@ int main() {
         std::string message = "Per";
         client.write(message);
 
-        size_t bytesRead = 0;
         std::vector<unsigned char> buffer(1024);
-        client.read(buffer, &bytesRead);
+        auto bytesRead = client.read(buffer);
 
         std::cout << "Response from server: " << std::string(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead)) << std::endl;
     } else {

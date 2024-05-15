@@ -21,9 +21,8 @@ namespace {
 
     void socketHandler(std::unique_ptr<Connection> conn) {
 
-        size_t bytesRead = 0;
         std::vector<unsigned char> buffer(1024);
-        REQUIRE(conn->read(buffer, &bytesRead));
+        auto bytesRead = conn->read(buffer);
 
         std::string expectedMessage = generateMessage();
         REQUIRE(bytesRead == expectedMessage.size());
@@ -61,10 +60,8 @@ TEST_CASE("TCP read/write") {
 
         client.write(message);
 
-        size_t bytesRead = 0;
         std::vector<unsigned char> buffer(1024);
-        REQUIRE(client.read(buffer, &bytesRead));
-
+        auto bytesRead = client.read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead));
 
