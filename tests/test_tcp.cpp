@@ -22,12 +22,12 @@ namespace {
     void socketHandler(std::unique_ptr<Connection> conn) {
 
         std::vector<unsigned char> buffer(1024);
-        auto bytesRead = conn->read(buffer);
+        const auto bytesRead = conn->read(buffer);
 
         std::string expectedMessage = generateMessage();
         REQUIRE(bytesRead == expectedMessage.size());
 
-        std::string msg(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead));
+        std::string msg(buffer.begin(), buffer.begin() + bytesRead);
         REQUIRE(msg == expectedMessage);
 
         REQUIRE(conn->write(generateResponse(msg)));
@@ -61,14 +61,19 @@ TEST_CASE("TCP read/write") {
         client.write(message);
 
         std::vector<unsigned char> buffer(1024);
-        auto bytesRead = client.read(buffer);
+        const auto bytesRead = client.read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead));
 
         CHECK(response == expectedResponse);
     });
 
+
     clientThread.join();
+    client.close();
+
+    REQUIRE(!server.write(""));
+
     server.close();
     serverThread.join();
 }
@@ -106,6 +111,10 @@ TEST_CASE("TCP readexact/write") {
     });
 
     clientThread.join();
+    client.close();
+
+    REQUIRE(!server.write(""));
+
     server.close();
     serverThread.join();
 }

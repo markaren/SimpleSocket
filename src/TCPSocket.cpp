@@ -27,8 +27,8 @@ struct TCPSocket::Impl {
 #endif
         }
 
-        int optval = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval));
+        const int optval = 1;
+        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
     }
 
     bool connect(const std::string& ip, int port) {
@@ -39,7 +39,7 @@ struct TCPSocket::Impl {
 
             return false;
         }
-        if (::connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) {
+        if (::connect(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
             return false;
         }
@@ -54,7 +54,7 @@ struct TCPSocket::Impl {
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(port);
 
-        if (::bind(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) {
+        if (::bind(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
 #ifdef _WIN32
             throw std::system_error(WSAGetLastError(), std::system_category(), "Bind failed");
@@ -80,7 +80,7 @@ struct TCPSocket::Impl {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
-        SOCKET new_sock = ::accept(sockfd, (struct sockaddr*) &client_addr, &addrlen);
+        SOCKET new_sock = ::accept(sockfd, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
 
         if (new_sock == INVALID_SOCKET) {
 #ifdef _WIN32
@@ -105,7 +105,7 @@ struct TCPSocket::Impl {
 #endif
         if (bytesRead) *bytesRead = read;
 
-        return read != SOCKET_ERROR || read == 0;
+        return (read != SOCKET_ERROR) && (read != 0);
     }
 
     bool readExact(unsigned char* buffer, size_t size) {
