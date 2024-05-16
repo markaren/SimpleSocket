@@ -3,8 +3,9 @@
 
 #include "SocketIncludes.hpp"
 
+#include <algorithm>
 
-int getAvailablePort(int startPort, int endPort) {
+int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == SOCKET_ERROR) {
         return -1;
@@ -18,6 +19,11 @@ int getAvailablePort(int startPort, int endPort) {
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
     for (int port = startPort; port <= endPort; ++port) {
+
+        if (std::find(excludePorts.begin(), excludePorts.end(), port) != excludePorts.end()) {
+            continue;
+        }
+
         serv_addr.sin_port = htons(port);
         if (bind(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) != SOCKET_ERROR) {
             closeSocket(sockfd);
