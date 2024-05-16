@@ -1,5 +1,5 @@
 
-add_library(simple_socket TCPSocket.cpp UDPSocket.cpp WSASession.cpp)
+add_library(simple_socket TCPSocket.cpp UDPSocket.cpp WSASession.cpp AvailablePortQuery.cpp)
 target_compile_features(simple_socket PUBLIC "cxx_std_17")
 
 if (WIN32)

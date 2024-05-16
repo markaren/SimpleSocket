@@ -1,6 +1,7 @@
 
 #include "TCPSocket.hpp"
 #include "WSASession.hpp"
+#include "AvailablePortQuery.hpp"
 
 #include <thread>
 #include <vector>
@@ -37,9 +38,10 @@ namespace {
 
 TEST_CASE("TCP read/write") {
 
-    int port = 8080;
-
     WSASession session;
+
+    int port = getAvailablePort(8000, 9000);
+    REQUIRE(port != -1);
 
     TCPServer server(port);
     TCPClient client;
@@ -79,9 +81,11 @@ TEST_CASE("TCP read/write") {
 
 TEST_CASE("TCP readexact/write") {
 
-    int port = 8080;
-
     WSASession session;
+
+    int port = getAvailablePort(8000, 9000);
+    REQUIRE(port != -1);
+
 
     TCPServer server(port);
     TCPClient client;

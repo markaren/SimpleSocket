@@ -1,35 +1,13 @@
 
 #include "TCPSocket.hpp"
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
-using SOCKET = int;
-#define INVALID_SOCKET (SOCKET)(~0)
-#define SOCKET_ERROR (-1)
-#endif
+#include "SocketIncludes.hpp"
 
-#include <iostream>
-
-namespace {
-
-    void throwError(const std::string& msg) {
-#ifdef _WIN32
-        throw std::system_error(WSAGetLastError(), std::system_category(), msg);
-#else
-        throw std::system_error(errno, std::generic_category(), msg);
-#endif
-    }
-
-}// namespace
 
 struct TCPSocket::Impl {
 
     Impl(): sockfd(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
+
         if (sockfd == INVALID_SOCKET) {
             throwError("Failed to create socket");
         }
@@ -38,7 +16,7 @@ struct TCPSocket::Impl {
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
     }
 
-    bool connect(const std::string& ip, int port) {
+    bool connect(const std::string& ip, int port) const {
         sockaddr_in serv_addr{};
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(port);
@@ -46,15 +24,11 @@ struct TCPSocket::Impl {
 
             return false;
         }
-        if (::connect(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
-            return false;
-        }
-
-        return true;
+        return ::connect(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0;
     }
 
-    void bind(int port) {
+    void bind(int port) const {
 
         sockaddr_in serv_addr{};
         serv_addr.sin_family = AF_INET;
@@ -67,7 +41,7 @@ struct TCPSocket::Impl {
         }
     }
 
-    void listen(int backlog) {
+    void listen(int backlog) const {
 
         if (::listen(sockfd, backlog) < 0) {
 
@@ -75,7 +49,7 @@ struct TCPSocket::Impl {
         }
     }
 
-    std::unique_ptr<Connection> accept() {
+    std::unique_ptr<Connection> accept() const {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
@@ -92,26 +66,27 @@ struct TCPSocket::Impl {
         return conn;
     }
 
-    bool read(unsigned char* buffer, size_t size, size_t* bytesRead) {
+    bool read(unsigned char* buffer, size_t size, size_t* bytesRead) const {
 
 #ifdef _WIN32
         auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
 #else
-        auto read = ::read(sockfd, buffer, size);
+        const auto read = ::read(sockfd, buffer, size);
 #endif
         if (bytesRead) *bytesRead = read;
 
         return (read != SOCKET_ERROR) && (read != 0);
     }
 
-    bool readExact(unsigned char* buffer, size_t size) {
+    bool readExact(unsigned char* buffer, size_t size) const {
 
         int totalBytesReceived = 0;
         while (totalBytesReceived < size) {
+            const auto remainingBytes = size - totalBytesReceived;
 #ifdef _WIN32
-            auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
+            auto read = recv(sockfd, reinterpret_cast<char*>(buffer + totalBytesReceived), remainingBytes, 0);
 #else
-            auto read = ::read(sockfd, buffer, size);
+            auto read = ::read(sockfd, buffer + totalBytesReceived, remainingBytes);
 #endif
             if (read == SOCKET_ERROR || read == 0) {
 
@@ -120,15 +95,15 @@ struct TCPSocket::Impl {
             totalBytesReceived += read;
         }
 
-        return true;
+        return totalBytesReceived == size;
     }
 
-    bool write(const std::string& buffer) {
+    bool write(const std::string& buffer) const {
 
         return send(sockfd, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
     }
 
-    bool write(const std::vector<unsigned char>& buffer) {
+    bool write(const std::vector<unsigned char>& buffer) const {
 
 #ifdef _WIN32
         return send(sockfd, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0) != SOCKET_ERROR;
@@ -148,11 +123,7 @@ struct TCPSocket::Impl {
 
         if (!closed) {
             closed = true;
-#ifdef _WIN32
-            closesocket(sockfd);
-#else
-            ::close(sockfd);
-#endif
+            closeSocket(sockfd);
         }
     }
 
@@ -164,6 +135,7 @@ struct TCPSocket::Impl {
 private:
     SOCKET sockfd;
     bool closed{false};
+
 };
 
 TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}
@@ -224,6 +196,7 @@ std::unique_ptr<Connection> TCPServer::accept() {
 }
 
 TCPServer::TCPServer(int port, int backlog) {
+
     pimpl_->bind(port);
     pimpl_->listen(backlog);
 }

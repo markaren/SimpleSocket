@@ -1,31 +1,16 @@
 
 #include "UDPSocket.hpp"
 
-#ifdef _WIN32
-#include <WS2tcpip.h>
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#define SOCKET int
-#define INVALID_SOCKET (SOCKET)(~0)
-#define SOCKET_ERROR (-1)
-#endif
+#include "SocketIncludes.hpp"
 
-#include <stdexcept>
-#include <system_error>
 
 struct UDPSocket::Impl {
 
     explicit Impl(int port): sockfd(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
 
         if (sockfd == INVALID_SOCKET) {
-#ifdef _WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to create socket");
-#else
-            throw std::system_error(errno, std::generic_category(), "Failed to create socket");
-#endif
+
+            throwError("Failed to create socket");
         }
 
         sockaddr_in local{};
@@ -34,26 +19,24 @@ struct UDPSocket::Impl {
         local.sin_port = htons(port);
 
         if (::bind(sockfd, (sockaddr*) &local, sizeof(local)) == SOCKET_ERROR) {
-#if WIN32
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Bind failed");
-#else
-            throw std::system_error(errno, std::generic_category(), "Bind failed");
-#endif
+
+            throwError("Bind failed");
         }
     }
 
-    bool sendTo(const std::string& address, uint16_t port, const std::string& data) {
+    bool sendTo(const std::string& address, uint16_t port, const std::string& data) const {
         sockaddr_in to{};
         to.sin_family = AF_INET;
         to.sin_port = htons(port);
         if (!inet_pton(AF_INET, address.c_str(), &to.sin_addr)) {
+
             return false;
         }
 
         return sendto(sockfd, data.c_str(), data.size(), 0, (sockaddr*) &to, sizeof(to)) != SOCKET_ERROR;
     }
 
-    int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) {
+    int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) const {
 
         sockaddr_in from{};
         from.sin_family = AF_INET;
@@ -74,13 +57,10 @@ struct UDPSocket::Impl {
     void close() {
         if (!closed) {
             closed = true;
-#ifdef _WIN32
-            closesocket(sockfd);
-#else
-            ::close(sockfd);
-#endif
+            closeSocket(sockfd);
         }
     }
+
     ~Impl() {
         close();
     }
