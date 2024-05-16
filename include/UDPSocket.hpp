@@ -16,6 +16,8 @@ public:
 
     bool sendTo(const std::string& address, uint16_t port, const std::string& data);
 
+    bool sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data);
+
     int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer);
 
     void close();

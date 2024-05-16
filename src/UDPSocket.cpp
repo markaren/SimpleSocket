@@ -33,7 +33,19 @@ struct UDPSocket::Impl {
             return false;
         }
 
-        return sendto(sockfd, data.c_str(), data.size(), 0, (sockaddr*) &to, sizeof(to)) != SOCKET_ERROR;
+        return sendto(sockfd, data.c_str(), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
+    }
+
+    bool sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data) const {
+        sockaddr_in to{};
+        to.sin_family = AF_INET;
+        to.sin_port = htons(port);
+        if (!inet_pton(AF_INET, address.c_str(), &to.sin_addr)) {
+
+            return false;
+        }
+
+        return sendto(sockfd, reinterpret_cast<const char*>(data.data()), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
     }
 
     int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) const {
@@ -46,7 +58,7 @@ struct UDPSocket::Impl {
         }
         socklen_t fromLength = sizeof(from);
 
-        int receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, (sockaddr*) &from, &fromLength);
+        int receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
             return -1;
         }
@@ -75,6 +87,11 @@ UDPSocket::UDPSocket(int port)
     : pimpl_(std::make_unique<Impl>(port)) {}
 
 bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::string& data) {
+
+    return pimpl_->sendTo(address, port, data);
+}
+
+bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data) {
 
     return pimpl_->sendTo(address, port, data);
 }
