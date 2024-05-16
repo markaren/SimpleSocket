@@ -2,10 +2,13 @@
 #ifndef SIMPLE_SOCKET_UDPSOCKET_HPP
 #define SIMPLE_SOCKET_UDPSOCKET_HPP
 
-
 #include <memory>
 #include <string>
 #include <vector>
+
+#ifndef MAX_UDP_PACKET_SIZE
+#define MAX_UDP_PACKET_SIZE 65507
+#endif
 
 class UDPSocket{
 public:
