@@ -29,11 +29,14 @@ inline void throwError(const std::string& msg) {
 
 inline void closeSocket(SOCKET socket) {
 
+    if (socket != INVALID_SOCKET) {
 #ifdef WIN32
-    closesocket(socket);
+        closesocket(socket);
 #else
-    close(socket);
+        close(socket);
 #endif
+        socket = INVALID_SOCKET;
+    }
 }
 
 

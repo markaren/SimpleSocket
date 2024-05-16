@@ -69,7 +69,7 @@ struct TCPSocket::Impl {
     bool read(unsigned char* buffer, size_t size, size_t* bytesRead) const {
 
 #ifdef _WIN32
-        auto read = recv(sockfd, reinterpret_cast<char*>(buffer), size, 0);
+        auto read = recv(sockfd, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
 #else
         const auto read = ::read(sockfd, buffer, size);
 #endif
@@ -82,7 +82,7 @@ struct TCPSocket::Impl {
 
         int totalBytesReceived = 0;
         while (totalBytesReceived < size) {
-            const auto remainingBytes = size - totalBytesReceived;
+            const auto remainingBytes = static_cast<int>(size) - totalBytesReceived;
 #ifdef _WIN32
             auto read = recv(sockfd, reinterpret_cast<char*>(buffer + totalBytesReceived), remainingBytes, 0);
 #else
@@ -100,31 +100,25 @@ struct TCPSocket::Impl {
 
     bool write(const std::string& buffer) const {
 
-        return send(sockfd, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
+        const auto size = static_cast<int>(buffer.size());
+
+        return send(sockfd, buffer.data(), size, 0) != SOCKET_ERROR;
     }
 
     bool write(const std::vector<unsigned char>& buffer) const {
 
+        const auto size = static_cast<int>(buffer.size());
+
 #ifdef _WIN32
-        return send(sockfd, reinterpret_cast<const char*>(buffer.data()), buffer.size(), 0) != SOCKET_ERROR;
+        return send(sockfd, reinterpret_cast<const char*>(buffer.data()), size, 0) != SOCKET_ERROR;
 #else
         return ::write(sockfd, buffer.data(), buffer.size()) != SOCKET_ERROR;
 #endif
     }
 
-    void assign(SOCKET new_sock) {
-        close();
+    void close() const {
 
-        sockfd = new_sock;
-        closed = false;
-    }
-
-    void close() {
-
-        if (!closed) {
-            closed = true;
-            closeSocket(sockfd);
-        }
+        closeSocket(sockfd);
     }
 
     ~Impl() {
@@ -134,8 +128,12 @@ struct TCPSocket::Impl {
 
 private:
     SOCKET sockfd;
-    bool closed{false};
 
+    void assign(SOCKET new_sock) {
+        close();
+
+        sockfd = new_sock;
+    }
 };
 
 TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}

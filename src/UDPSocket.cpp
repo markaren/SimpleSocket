@@ -66,11 +66,9 @@ struct UDPSocket::Impl {
         return receive;
     }
 
-    void close() {
-        if (!closed) {
-            closed = true;
-            closeSocket(sockfd);
-        }
+    void close() const {
+
+        closeSocket(sockfd);
     }
 
     ~Impl() {
@@ -78,7 +76,6 @@ struct UDPSocket::Impl {
     }
 
 private:
-    bool closed{false};
     SOCKET sockfd;
 };
 
