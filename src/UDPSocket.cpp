@@ -85,10 +85,18 @@ UDPSocket::UDPSocket(int port)
 
 bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::string& data) {
 
+    if (data.empty() || data.size() > MAX_UDP_PACKET_SIZE) {
+        return false;
+    }
+
     return pimpl_->sendTo(address, port, data);
 }
 
 bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data) {
+
+    if (data.empty() || data.size() > MAX_UDP_PACKET_SIZE) {
+        return false;
+    }
 
     return pimpl_->sendTo(address, port, data);
 }
