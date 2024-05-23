@@ -6,21 +6,22 @@
 
 struct UDPSocket::Impl {
 
-    explicit Impl(int port): sockfd(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+    explicit Impl(int localPort)
+        : sockfd(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
 
         if (sockfd == INVALID_SOCKET) {
 
-            throwError("Failed to create socket");
+            throwSocketError("Failed to create socket");
         }
 
         sockaddr_in local{};
         local.sin_family = AF_INET;
         local.sin_addr.s_addr = INADDR_ANY;
-        local.sin_port = htons(port);
+        local.sin_port = htons(localPort);
 
         if (::bind(sockfd, (sockaddr*) &local, sizeof(local)) == SOCKET_ERROR) {
 
-            throwError("Bind failed");
+            throwSocketError("Bind failed");
         }
     }
 
@@ -66,12 +67,33 @@ struct UDPSocket::Impl {
         return receive;
     }
 
+    std::string recvFrom(const std::string& address, uint16_t port) const {
+
+        sockaddr_in from{};
+        from.sin_family = AF_INET;
+        from.sin_port = htons(port);
+        if (!inet_pton(AF_INET, address.c_str(), &from.sin_addr)) {
+            return false;
+        }
+        socklen_t fromLength = sizeof(from);
+
+        static std::vector<unsigned char> buffer(MAX_UDP_PACKET_SIZE);
+
+        int receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
+        if (receive == SOCKET_ERROR) {
+            return "";
+        }
+
+        return {buffer.begin(), buffer.begin() + receive};
+    }
+
     void close() const {
 
         closeSocket(sockfd);
     }
 
     ~Impl() {
+
         close();
     }
 
@@ -80,35 +102,40 @@ private:
 };
 
 
-UDPSocket::UDPSocket(int port)
-    : pimpl_(std::make_unique<Impl>(port)) {}
+UDPSocket::UDPSocket(int localPort)
+    : pimpl_(std::make_unique<Impl>(localPort)) {}
 
-bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::string& data) {
-
-    if (data.empty() || data.size() > MAX_UDP_PACKET_SIZE) {
-        return false;
-    }
-
-    return pimpl_->sendTo(address, port, data);
-}
-
-bool UDPSocket::sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data) {
+bool UDPSocket::sendTo(const std::string& address, uint16_t remotePort, const std::string& data) {
 
     if (data.empty() || data.size() > MAX_UDP_PACKET_SIZE) {
         return false;
     }
 
-    return pimpl_->sendTo(address, port, data);
+    return pimpl_->sendTo(address, remotePort, data);
 }
 
-int UDPSocket::recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) {
+bool UDPSocket::sendTo(const std::string& address, uint16_t remotePort, const std::vector<unsigned char>& data) {
 
-    return pimpl_->recvFrom(address, port, buffer);
+    if (data.empty() || data.size() > MAX_UDP_PACKET_SIZE) {
+        return false;
+    }
+
+    return pimpl_->sendTo(address, remotePort, data);
+}
+
+int UDPSocket::recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer) {
+
+    return pimpl_->recvFrom(address, remotePort, buffer);
 }
 
 void UDPSocket::close() {
 
     pimpl_->close();
+}
+
+std::string UDPSocket::recvFrom(const std::string& address, uint16_t remotePort) {
+
+    return pimpl_->recvFrom(address, remotePort);
 }
 
 UDPSocket::~UDPSocket() = default;

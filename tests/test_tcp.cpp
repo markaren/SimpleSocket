@@ -20,7 +20,7 @@ namespace {
         return "Hello " + msg + "!";
     }
 
-    void socketHandler(std::unique_ptr<Connection> conn) {
+    void socketHandler(std::unique_ptr<TCPConnection> conn) {
 
         std::vector<unsigned char> buffer(1024);
         const auto bytesRead = conn->read(buffer);
@@ -47,7 +47,7 @@ TEST_CASE("TCP read/write") {
     TCPClient client;
 
     std::thread serverThread([&server] {
-        std::unique_ptr<Connection> conn;
+        std::unique_ptr<TCPConnection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
     });
@@ -91,7 +91,7 @@ TEST_CASE("TCP readexact/write") {
     TCPClient client;
 
     std::thread serverThread([&server] {
-        std::unique_ptr<Connection> conn;
+        std::unique_ptr<TCPConnection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
     });

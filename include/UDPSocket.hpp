@@ -12,13 +12,15 @@
 
 class UDPSocket{
 public:
-    explicit UDPSocket(int port);
+    explicit UDPSocket(int localPort);
 
-    bool sendTo(const std::string& address, uint16_t port, const std::string& data);
+    bool sendTo(const std::string& address, uint16_t remotePort, const std::string& data);
 
-    bool sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data);
+    bool sendTo(const std::string& address, uint16_t remotePort, const std::vector<unsigned char>& data);
 
-    int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer);
+    int recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer);
+
+    std::string recvFrom(const std::string& address, uint16_t remotePort);
 
     void close();
 

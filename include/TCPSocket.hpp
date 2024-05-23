@@ -8,7 +8,7 @@
 
 // This Socket interface is not production grade
 
-class Connection {
+class TCPConnection {
 public:
     virtual int read(std::vector<unsigned char>& buffer) = 0;
 
@@ -22,10 +22,10 @@ public:
 
     virtual bool write(const std::vector<unsigned char>& data) = 0;
 
-    virtual ~Connection() = default;
+    virtual ~TCPConnection() = default;
 };
 
-class TCPSocket: public Connection {
+class TCPSocket: public TCPConnection {
 public:
     TCPSocket();
 
@@ -62,7 +62,7 @@ class TCPServer: public TCPSocket {
 public:
     explicit TCPServer(int port, int backlog = 1);
 
-    std::unique_ptr<Connection> accept();
+    std::unique_ptr<TCPConnection> accept();
 };
 
 #endif// SPHEROSIM_SOCKET_HPP

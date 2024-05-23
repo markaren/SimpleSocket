@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 
-void socketHandler(std::unique_ptr<Connection> conn) {
+void socketHandler(std::unique_ptr<TCPConnection> conn) {
 
     std::vector<unsigned char> buffer(1024);
     auto n = conn->read(buffer);
@@ -25,7 +25,7 @@ int main() {
     std::atomic_bool stop = false;
     std::thread t([&] {
         while (!stop) {
-            std::unique_ptr<Connection> conn;
+            std::unique_ptr<TCPConnection> conn;
             try {
                 conn = server.accept();
             } catch (const std::exception& e) {

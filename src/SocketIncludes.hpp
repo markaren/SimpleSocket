@@ -18,7 +18,7 @@ using SOCKET = int;
 #include <system_error>
 
 
-inline void throwError(const std::string& msg) {
+inline void throwSocketError(const std::string& msg) {
 
 #ifdef _WIN32
     throw std::system_error(WSAGetLastError(), std::system_category(), msg);

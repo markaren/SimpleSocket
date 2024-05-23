@@ -9,7 +9,7 @@ struct TCPSocket::Impl {
     Impl(): sockfd(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
 
         if (sockfd == INVALID_SOCKET) {
-            throwError("Failed to create socket");
+            throwSocketError("Failed to create socket");
         }
 
         const int optval = 1;
@@ -37,7 +37,7 @@ struct TCPSocket::Impl {
 
         if (::bind(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
-            throwError("Bind failed");
+            throwSocketError("Bind failed");
         }
     }
 
@@ -45,11 +45,11 @@ struct TCPSocket::Impl {
 
         if (::listen(sockfd, backlog) < 0) {
 
-            throwError("Listen failed");
+            throwSocketError("Listen failed");
         }
     }
 
-    std::unique_ptr<Connection> accept() const {
+    std::unique_ptr<TCPConnection> accept() const {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
@@ -57,7 +57,7 @@ struct TCPSocket::Impl {
 
         if (new_sock == INVALID_SOCKET) {
 
-            throwError("Accept failed");
+            throwSocketError("Accept failed");
         }
 
         auto conn = std::make_unique<TCPSocket>();
@@ -188,7 +188,7 @@ bool TCPClient::connect(const std::string& ip, int port) {
     return pimpl_->connect(ip, port);
 }
 
-std::unique_ptr<Connection> TCPServer::accept() {
+std::unique_ptr<TCPConnection> TCPServer::accept() {
 
     return pimpl_->accept();
 }
