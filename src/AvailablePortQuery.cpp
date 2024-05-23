@@ -6,7 +6,7 @@
 #include <algorithm>
 
 int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == SOCKET_ERROR) {
         return -1;
     }
