@@ -20,7 +20,7 @@ public:
 
     int recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer);
 
-    std::string recvFrom(const std::string& address, uint16_t remotePort);
+    [[nodiscard]] std::string recvFrom(const std::string& address, uint16_t remotePort);
 
     void close();
 
