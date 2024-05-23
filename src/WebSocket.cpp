@@ -34,10 +34,11 @@ namespace {
     }
 }// namespace
 
-struct WebSocketConnection::Impl {
+class WebSocketConnectionImpl: public WebSocketConnection {
 
-    Impl(WebSocket* socket, WebSocketConnection* scope, std::unique_ptr<TCPConnection> conn)
-        : socket(socket), scope(scope), conn(std::move(conn)) {
+public:
+    WebSocketConnectionImpl(WebSocket* socket, std::unique_ptr<TCPConnection> conn)
+        : socket(socket), conn(std::move(conn)) {
 
         handshake();
 
@@ -46,7 +47,7 @@ struct WebSocketConnection::Impl {
         });
     }
 
-    void handshake() {
+    void handshake() const {
         std::vector<unsigned char> buffer(1024);
         const auto bytesReceived = conn->read(buffer);
         if (bytesReceived == -1) {
@@ -59,8 +60,8 @@ struct WebSocketConnection::Impl {
             throwSocketError("Client handshake request is invalid.");
         }
         keyPos += 19;
-        std::string::size_type keyEnd = request.find("\r\n", keyPos);
-        std::string clientKey = request.substr(keyPos, keyEnd - keyPos);
+        const auto keyEnd = request.find("\r\n", keyPos);
+        const auto clientKey = request.substr(keyPos, keyEnd - keyPos);
 
         char secWebSocketAccept[29] = {};
         WebSocketHandshake::generate(clientKey.data(), secWebSocketAccept);
@@ -71,13 +72,13 @@ struct WebSocketConnection::Impl {
                  << "Connection: Upgrade\r\n"
                  << "Sec-WebSocket-Accept: " << secWebSocketAccept << "\r\n\r\n";
 
-        std::string responseStr = response.str();
+        const std::string responseStr = response.str();
         if (!conn->write(responseStr)) {
             throwSocketError("Failed to send handshake response");
         }
     }
 
-    void send(const std::string& message) {
+    void send(const std::string& message) override {
         const auto frame = createFrame(message);
         conn->write(frame);
     }
@@ -130,15 +131,11 @@ struct WebSocketConnection::Impl {
                 case 0x1:// Text frame
                 {
                     std::string message(payload.begin(), payload.end());
-                    socket->onMessage(scope, message);
+                    socket->onMessage(this, message);
                 } break;
                 case 0x8:// Close frame
-                    if (!closed) {
-                        scope->pimpl_->
-                        socket->onClose(scope);
-                        conn->close();
-                        closed = true;
-                    }
+                    close(false);
+
                     break;
                 case 0x9:// Ping frame
                     std::cout << "Received ping frame" << std::endl;
@@ -159,48 +156,38 @@ struct WebSocketConnection::Impl {
         }
     }
 
-    void close() {
+    void close(bool self) {
         if (!closed) {
             closed = true;
 
-            socket->onClose(scope);
+            socket->onClose(this);
 
-            std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
-            closeFrame.push_back(0);
-            conn->write(closeFrame);
+            if (!self) {
+                std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
+                closeFrame.push_back(0);
+                conn->write(closeFrame);
+            }
             conn->close();
         }
     }
 
-    ~Impl() {
-        close();
+    ~WebSocketConnectionImpl() override {
+        close(true);
         if (thread.joinable()) {
             thread.join();
         }
     }
 
-    bool closed = false;
+    std::atomic_bool closed{false};
     WebSocket* socket;
-    WebSocketConnection* scope;
     std::unique_ptr<TCPConnection> conn;
     std::thread thread;
 };
 
-WebSocketConnection::WebSocketConnection(WebSocket* socket, std::unique_ptr<TCPConnection> conn)
-    : pimpl_(std::make_unique<Impl>(socket, this, std::move(conn))) {}
-
-void WebSocketConnection::send(const std::string& message) const {
-
-    pimpl_->send(message);
-}
-
-WebSocketConnection::~WebSocketConnection() = default;
-
-
 struct WebSocket::Impl {
 
     explicit Impl(WebSocket* scope, uint16_t port)
-        : socket(port), scope(scope) {
+        : scope(scope), socket(port) {
 
         thread = std::thread([this] {
             run();
@@ -209,48 +196,47 @@ struct WebSocket::Impl {
 
     void run() {
 
+        std::vector<std::unique_ptr<WebSocketConnectionImpl>> connections;
+
         while (!stop_) {
 
             try {
-                auto ws = std::make_unique<WebSocketConnection>(scope, socket.accept());
+                auto ws = std::make_unique<WebSocketConnectionImpl>(scope, socket.accept());
                 scope->onOpen(ws.get());
                 connections.emplace_back(std::move(ws));
             } catch (std::exception& ex) {
-                std::cerr << ex.what() << std::endl;
+                // std::cerr << ex.what() << std::endl;
             }
-        }
 
-        std::cout << "WS closed" << std::endl;
-    }
+            //cleanup connections
+            for (auto it = connections.begin(); it != connections.end();) {
 
-    void onClose(WebSocketConnection* conn) {
-        scope->onClose(conn);
-        const auto it = std::find_if(connections.begin(), connections.end(), [conn](auto& c) {
-            return c.get() == conn;
-        });
-        if (it != connections.end()) {
-            connections.erase(it);
+                if ((*it)->closed) {
+                    it = connections.erase(it);
+                } else {
+                    ++it;
+                }
+            }
         }
     }
 
     void stop() {
         stop_ = true;
         socket.close();
+    }
+
+    ~Impl() {
+        stop();
         if (thread.joinable()) {
             thread.join();
         }
     }
 
-    ~Impl() {
-        stop();
-    }
+    std::atomic_bool stop_{false};
 
-    std::atomic_bool stop_ = false;
+    WebSocket* scope;
     TCPServer socket;
     std::thread thread;
-    WebSocket* scope;
-
-    std::vector<std::unique_ptr<WebSocketConnection>> connections;
 };
 
 
@@ -261,6 +247,4 @@ void WebSocket::stop() const {
     pimpl_->stop();
 }
 
-WebSocket::~WebSocket() {
-    stop();
-}
+WebSocket::~WebSocket() = default;
