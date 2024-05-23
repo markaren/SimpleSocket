@@ -1,179 +1,200 @@
 
+/*
+ *
+ * TinySHA1 - a header only implementation of the SHA1 algorithm in C++. Based
+ * on the implementation in boost::uuid::details.
+ *
+ * SHA1 Wikipedia Page: http://en.wikipedia.org/wiki/SHA-1
+ *
+ * Copyright (c) 2012-22 SAURAV MOHAPATRA <mohaps@gmail.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 #ifndef SIMPLE_SOCKET_SHA1_HPP
 #define SIMPLE_SOCKET_SHA1_HPP
 
-#include <string>
-#include <istream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdint>
 
-// SHA1 hashing function
-class SHA1 {
-public:
-    SHA1() {
-        reset();
-    }
-
-    void update(const std::string& s) {
-        for (char c : s) {
-            update_(c);
+namespace sha1
+{
+    class SHA1
+    {
+    public:
+        typedef uint32_t digest32_t[5];
+        typedef uint8_t digest8_t[20];
+        inline static uint32_t LeftRotate(uint32_t value, size_t count) {
+            return (value << count) ^ (value >> (32-count));
         }
-    }
-
-    void update(std::istream& is) {
-        char sbuf[STREAM_BUFFER_SIZE];
-        while (is) {
-            is.read(sbuf, STREAM_BUFFER_SIZE);
-            update_(reinterpret_cast<uint8_t*>(sbuf), is.gcount());
+        SHA1(){ reset(); }
+        virtual ~SHA1() {}
+        SHA1(const SHA1& s) { *this = s; }
+        const SHA1& operator = (const SHA1& s) {
+            memcpy(m_digest, s.m_digest, 5 * sizeof(uint32_t));
+            memcpy(m_block, s.m_block, 64);
+            m_blockByteIndex = s.m_blockByteIndex;
+            m_byteCount = s.m_byteCount;
+            return *this;
         }
-    }
-
-    std::string final() {
-        uint8_t digest[HASH_SIZE];
-        finalize(digest);
-
-        char buf[HASH_SIZE*2 + 1];
-        buf[HASH_SIZE*2] = 0;
-        for (int i = 0; i < HASH_SIZE; ++i)
-            sprintf(buf + i*2, "%02x", digest[i]);
-
-        return {buf};
-    }
-
-private:
-    static const unsigned int HASH_SIZE = 20;
-    static const unsigned int BLOCK_INTS = 16;
-    static const unsigned int BLOCK_BYTES = BLOCK_INTS * 4;
-    static const unsigned int STREAM_BUFFER_SIZE = 8192;
-
-    uint32_t digest[5];
-    std::string buffer;
-    uint64_t transforms;
-
-    void reset() {
-        digest[0] = 0x67452301;
-        digest[1] = 0xEFCDAB89;
-        digest[2] = 0x98BADCFE;
-        digest[3] = 0x10325476;
-        digest[4] = 0xC3D2E1F0;
-
-        buffer = "";
-        transforms = 0;
-    }
-
-    void update_(uint8_t block[BLOCK_BYTES], std::size_t n) {
-        buffer += std::string((const char*) block, n);
-        while (buffer.size() >= BLOCK_BYTES) {
-            transform();
-            buffer.erase(0, BLOCK_BYTES);
+        SHA1& reset() {
+            m_digest[0] = 0x67452301;
+            m_digest[1] = 0xEFCDAB89;
+            m_digest[2] = 0x98BADCFE;
+            m_digest[3] = 0x10325476;
+            m_digest[4] = 0xC3D2E1F0;
+            m_blockByteIndex = 0;
+            m_byteCount = 0;
+            return *this;
         }
-    }
-
-    void update_(const std::string &s) {
-        for (char c : s) {
-            update_((uint8_t)c);
+        SHA1& processByte(uint8_t octet) {
+            this->m_block[this->m_blockByteIndex++] = octet;
+            ++this->m_byteCount;
+            if(m_blockByteIndex == 64) {
+                this->m_blockByteIndex = 0;
+                processBlock();
+            }
+            return *this;
         }
-    }
-
-    void update_(uint8_t byte) {
-        buffer += byte;
-        if (buffer.size() == BLOCK_BYTES) {
-            transform();
-            buffer.clear();
+        SHA1& processBlock(const void* const start, const void* const end) {
+            const uint8_t* begin = static_cast<const uint8_t*>(start);
+            const uint8_t* finish = static_cast<const uint8_t*>(end);
+            while(begin != finish) {
+                processByte(*begin);
+                begin++;
+            }
+            return *this;
         }
-    }
-
-    void transform() {
-        uint32_t block[BLOCK_INTS];
-        decode(block, buffer.data(), BLOCK_BYTES);
-
-        uint32_t a = digest[0];
-        uint32_t b = digest[1];
-        uint32_t c = digest[2];
-        uint32_t d = digest[3];
-        uint32_t e = digest[4];
-
-// 4 rounds of 20 operations each. Loop unrolled.
-#define SHA1_ROUND(f, k) \
-            { uint32_t temp = ROTATE_LEFT(a, 5) + f(b, c, d) + e + k + block[i]; e = d; d = c; c = ROTATE_LEFT(b, 30); b = a; a = temp; }
-        for (unsigned int i = 0; i < 16; ++i) {
-            SHA1_ROUND(F1, 0x5A827999)
+        SHA1& processBytes(const void* const data, size_t len) {
+            const uint8_t* block = static_cast<const uint8_t*>(data);
+            processBlock(block, block + len);
+            return *this;
         }
-        for (unsigned int i = 16; i < 20; ++i) {
-            SHA1_ROUND(F2, 0x6ED9EBA1)
-        }
-        for (unsigned int i = 20; i < 40; ++i) {
-            SHA1_ROUND(F3, 0x8F1BBCDC)
-        }
-        for (unsigned int i = 40; i < 60; ++i) {
-            SHA1_ROUND(F4, 0xCA62C1D6)
-        }
-        for (unsigned int i = 60; i < 80; ++i) {
-            SHA1_ROUND(F4, 0xCA62C1D6)
-        }
-#undef SHA1_ROUND
+        const uint32_t* getDigest(digest32_t digest) {
+            size_t bitCount = this->m_byteCount * 8;
+            processByte(0x80);
+            if (this->m_blockByteIndex > 56) {
+                while (m_blockByteIndex != 0) {
+                    processByte(0);
+                }
+                while (m_blockByteIndex < 56) {
+                    processByte(0);
+                }
+            } else {
+                while (m_blockByteIndex < 56) {
+                    processByte(0);
+                }
+            }
+            processByte(0);
+            processByte(0);
+            processByte(0);
+            processByte(0);
+            processByte( static_cast<unsigned char>((bitCount>>24) & 0xFF));
+            processByte( static_cast<unsigned char>((bitCount>>16) & 0xFF));
+            processByte( static_cast<unsigned char>((bitCount>>8 ) & 0xFF));
+            processByte( static_cast<unsigned char>((bitCount)     & 0xFF));
 
-        digest[0] += a;
-        digest[1] += b;
-        digest[2] += c;
-        digest[3] += d;
-        digest[4] += e;
+            memcpy(digest, m_digest, 5 * sizeof(uint32_t));
+            return digest;
+        }
+        const uint8_t* getDigestBytes(digest8_t digest) {
+            digest32_t d32;
+            getDigest(d32);
+            size_t di = 0;
+            digest[di++] = ((d32[0] >> 24) & 0xFF);
+            digest[di++] = ((d32[0] >> 16) & 0xFF);
+            digest[di++] = ((d32[0] >> 8) & 0xFF);
+            digest[di++] = ((d32[0]) & 0xFF);
 
-        ++transforms;
-    }
+            digest[di++] = ((d32[1] >> 24) & 0xFF);
+            digest[di++] = ((d32[1] >> 16) & 0xFF);
+            digest[di++] = ((d32[1] >> 8) & 0xFF);
+            digest[di++] = ((d32[1]) & 0xFF);
 
-    void finalize(uint8_t digest[HASH_SIZE]) {
-        uint64_t total_bits = (transforms * BLOCK_BYTES + buffer.size()) * 8;
-        buffer += (char)0x80;
-        unsigned int orig_size = buffer.size();
-        while (buffer.size() < BLOCK_BYTES - 8) {
-            buffer += (char)0x00;
+            digest[di++] = ((d32[2] >> 24) & 0xFF);
+            digest[di++] = ((d32[2] >> 16) & 0xFF);
+            digest[di++] = ((d32[2] >> 8) & 0xFF);
+            digest[di++] = ((d32[2]) & 0xFF);
+
+            digest[di++] = ((d32[3] >> 24) & 0xFF);
+            digest[di++] = ((d32[3] >> 16) & 0xFF);
+            digest[di++] = ((d32[3] >> 8) & 0xFF);
+            digest[di++] = ((d32[3]) & 0xFF);
+
+            digest[di++] = ((d32[4] >> 24) & 0xFF);
+            digest[di++] = ((d32[4] >> 16) & 0xFF);
+            digest[di++] = ((d32[4] >> 8) & 0xFF);
+            digest[di++] = ((d32[4]) & 0xFF);
+            return digest;
         }
 
-        uint32_t last_block[BLOCK_INTS];
-        decode(last_block, buffer.data(), BLOCK_BYTES);
-        last_block[BLOCK_INTS-1] = total_bits;
-        last_block[BLOCK_INTS-2] = (total_bits >> 32);
+    protected:
+        void processBlock() {
+            uint32_t w[80];
+            for (size_t i = 0; i < 16; i++) {
+                w[i]  = (m_block[i*4 + 0] << 24);
+                w[i] |= (m_block[i*4 + 1] << 16);
+                w[i] |= (m_block[i*4 + 2] << 8);
+                w[i] |= (m_block[i*4 + 3]);
+            }
+            for (size_t i = 16; i < 80; i++) {
+                w[i] = LeftRotate((w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]), 1);
+            }
 
-        transform();
-        encode(digest, this->digest, HASH_SIZE);
-    }
+            uint32_t a = m_digest[0];
+            uint32_t b = m_digest[1];
+            uint32_t c = m_digest[2];
+            uint32_t d = m_digest[3];
+            uint32_t e = m_digest[4];
 
-    static inline uint32_t F1(uint32_t b, uint32_t c, uint32_t d) {
-        return d ^ (b & (c ^ d));
-    }
+            for (std::size_t i=0; i<80; ++i) {
+                uint32_t f = 0;
+                uint32_t k = 0;
 
-    static inline uint32_t F2(uint32_t b, uint32_t c, uint32_t d) {
-        return b ^ c ^ d;
-    }
+                if (i<20) {
+                    f = (b & c) | (~b & d);
+                    k = 0x5A827999;
+                } else if (i<40) {
+                    f = b ^ c ^ d;
+                    k = 0x6ED9EBA1;
+                } else if (i<60) {
+                    f = (b & c) | (b & d) | (c & d);
+                    k = 0x8F1BBCDC;
+                } else {
+                    f = b ^ c ^ d;
+                    k = 0xCA62C1D6;
+                }
+                uint32_t temp = LeftRotate(a, 5) + f + e + k + w[i];
+                e = d;
+                d = c;
+                c = LeftRotate(b, 30);
+                b = a;
+                a = temp;
+            }
 
-    static inline uint32_t F3(uint32_t b, uint32_t c, uint32_t d) {
-        return (b & c) | (d & (b | c));
-    }
-
-    static inline uint32_t F4(uint32_t b, uint32_t c, uint32_t d) {
-        return b ^ c ^ d;
-    }
-
-    static inline uint32_t ROTATE_LEFT(uint32_t x, unsigned int n) {
-        return (x << n) | (x >> (32 - n));
-    }
-
-    static void decode(uint32_t output[], const char* input, unsigned int len) {
-        for (unsigned int i = 0, j = 0; j < len; ++i, j += 4) {
-            output[i] = ((uint32_t)(uint8_t)input[j] << 24)
-                        | ((uint32_t)(uint8_t)input[j + 1] << 16)
-                        | ((uint32_t)(uint8_t)input[j + 2] << 8)
-                        | ((uint32_t)(uint8_t)input[j + 3]);
+            m_digest[0] += a;
+            m_digest[1] += b;
+            m_digest[2] += c;
+            m_digest[3] += d;
+            m_digest[4] += e;
         }
-    }
-
-    static void encode(uint8_t output[], const uint32_t input[], unsigned int len) {
-        for (unsigned int i = 0, j = 0; j < len; ++i, j += 4) {
-            output[j]     = (input[i] >> 24) & 0xff;
-            output[j + 1] = (input[i] >> 16) & 0xff;
-            output[j + 2] = (input[i] >> 8) & 0xff;
-            output[j + 3] = input[i] & 0xff;
-        }
-    }
-};
+    private:
+        digest32_t m_digest;
+        uint8_t m_block[64];
+        size_t m_blockByteIndex;
+        size_t m_byteCount;
+    };
+}
 
 #endif//SIMPLE_SOCKET_SHA1_HPP

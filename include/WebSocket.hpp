@@ -7,34 +7,33 @@
 
 #include "TCPSocket.hpp"
 
+class WebSocket;
+
 class WebSocketConnection {
 
 public:
+    explicit WebSocketConnection(WebSocket* socket, std::unique_ptr<TCPConnection> conn);
 
-    explicit WebSocketConnection(std::unique_ptr<TCPConnection> connection)
-        : connection_(std::move(connection)) {}
+    void send(const std::string& msg);
 
-    void write(const std::string& msg) {
-        connection_->write(msg);
-    }
+    ~WebSocketConnection();
 
 private:
     friend class WebSocket;
-    std::unique_ptr<TCPConnection> connection_;
-
+    struct Impl;
+    std::unique_ptr<Impl> pimpl_;
 };
 
 class WebSocket {
 
 public:
-
     explicit WebSocket(uint16_t port);
 
-    virtual void onMessage(const std::string& msg) = 0;
+    virtual void onOpen(WebSocketConnection* conn) = 0;
 
-    virtual void onOpen(WebSocketConnection* con) = 0;
+    virtual void onMessage(WebSocketConnection* conn, const std::string& msg) = 0;
 
-    virtual void onClose(WebSocketConnection* con) = 0;
+    virtual void onClose(WebSocketConnection* conn) = 0;
 
     void stop();
 
