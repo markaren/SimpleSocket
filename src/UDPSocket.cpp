@@ -55,11 +55,12 @@ struct UDPSocket::Impl {
         from.sin_family = AF_INET;
         from.sin_port = htons(port);
         if (!inet_pton(AF_INET, address.c_str(), &from.sin_addr)) {
-            return false;
+
+            return -1;
         }
         socklen_t fromLength = sizeof(from);
 
-        int receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
+        const auto receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
             return -1;
         }
@@ -73,14 +74,16 @@ struct UDPSocket::Impl {
         from.sin_family = AF_INET;
         from.sin_port = htons(port);
         if (!inet_pton(AF_INET, address.c_str(), &from.sin_addr)) {
-            return false;
+
+            return "";
         }
         socklen_t fromLength = sizeof(from);
 
         static std::vector<unsigned char> buffer(MAX_UDP_PACKET_SIZE);
 
-        int receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
+        const auto receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
+
             return "";
         }
 
