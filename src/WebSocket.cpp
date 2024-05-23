@@ -4,6 +4,7 @@
 #include "TCPSocket.hpp"
 #include "WebSocketHandshake.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <iostream>
 #include <sstream>
@@ -35,8 +36,8 @@ namespace {
 
 struct WebSocketConnection::Impl {
 
-    Impl(WebSocket* socket, std::unique_ptr<TCPConnection> conn)
-        : conn(std::move(conn)) {
+    Impl(WebSocket* socket, WebSocketConnection* scope, std::unique_ptr<TCPConnection> conn)
+        : socket(socket), scope(scope), conn(std::move(conn)) {
 
         handshake();
 
@@ -47,7 +48,7 @@ struct WebSocketConnection::Impl {
 
     void handshake() {
         std::vector<unsigned char> buffer(1024);
-        auto bytesReceived = conn->read(buffer);
+        const auto bytesReceived = conn->read(buffer);
         if (bytesReceived == -1) {
             throwSocketError("Failed to read handshake request from client.");
         }
@@ -77,22 +78,15 @@ struct WebSocketConnection::Impl {
     }
 
     void send(const std::string& message) {
-        auto frame = createFrame(message);
+        const auto frame = createFrame(message);
         conn->write(frame);
-    }
-
-    void close() {
-        std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
-        closeFrame.push_back(0);
-        conn->write(closeFrame);
-        conn->close();
     }
 
     void listen() {
         std::vector<unsigned char> buffer(1024);
-        while (true) {
+        while (!closed) {
 
-            int recv = conn->read(buffer);
+            const auto recv = conn->read(buffer);
             if (recv == -1) {
                 break;
             }
@@ -125,7 +119,7 @@ struct WebSocketConnection::Impl {
                 }
             }
 
-            std::vector<uint8_t> payload(frame.begin() + pos, frame.begin() + pos + payloadLen);
+            std::vector payload(frame.begin() + pos, frame.begin() + pos + payloadLen);
             if (isMasked) {
                 for (size_t i = 0; i < payload.size(); ++i) {
                     payload[i] ^= mask[i % 4];
@@ -136,14 +130,15 @@ struct WebSocketConnection::Impl {
                 case 0x1:// Text frame
                 {
                     std::string message(payload.begin(), payload.end());
-                    std::cout << "Received message: " << message << std::endl;
-
-                    auto responseFrame = createFrame(message);
-                    conn->write(responseFrame);
+                    socket->onMessage(scope, message);
                 } break;
                 case 0x8:// Close frame
-                    std::cout << "Received close frame" << std::endl;
-                    conn->close();
+                    if (!closed) {
+                        scope->pimpl_->
+                        socket->onClose(scope);
+                        conn->close();
+                        closed = true;
+                    }
                     break;
                 case 0x9:// Ping frame
                     std::cout << "Received ping frame" << std::endl;
@@ -164,6 +159,19 @@ struct WebSocketConnection::Impl {
         }
     }
 
+    void close() {
+        if (!closed) {
+            closed = true;
+
+            socket->onClose(scope);
+
+            std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
+            closeFrame.push_back(0);
+            conn->write(closeFrame);
+            conn->close();
+        }
+    }
+
     ~Impl() {
         close();
         if (thread.joinable()) {
@@ -171,15 +179,18 @@ struct WebSocketConnection::Impl {
         }
     }
 
+    bool closed = false;
     WebSocket* socket;
+    WebSocketConnection* scope;
     std::unique_ptr<TCPConnection> conn;
     std::thread thread;
 };
 
 WebSocketConnection::WebSocketConnection(WebSocket* socket, std::unique_ptr<TCPConnection> conn)
-    : pimpl_(std::make_unique<Impl>(socket, std::move(conn))) {}
+    : pimpl_(std::make_unique<Impl>(socket, this, std::move(conn))) {}
 
-void WebSocketConnection::send(const std::string& message) {
+void WebSocketConnection::send(const std::string& message) const {
+
     pimpl_->send(message);
 }
 
@@ -188,9 +199,8 @@ WebSocketConnection::~WebSocketConnection() = default;
 
 struct WebSocket::Impl {
 
-public:
     explicit Impl(WebSocket* scope, uint16_t port)
-        : scope(scope), socket(port) {
+        : socket(port), scope(scope) {
 
         thread = std::thread([this] {
             run();
@@ -199,40 +209,58 @@ public:
 
     void run() {
 
-        std::vector<std::unique_ptr<WebSocketConnection>> connections;
-
-        while (!stop) {
+        while (!stop_) {
 
             try {
                 auto ws = std::make_unique<WebSocketConnection>(scope, socket.accept());
                 scope->onOpen(ws.get());
                 connections.emplace_back(std::move(ws));
-            } catch (std::exception&) {
-                continue;
+            } catch (std::exception& ex) {
+                std::cerr << ex.what() << std::endl;
             }
+        }
+
+        std::cout << "WS closed" << std::endl;
+    }
+
+    void onClose(WebSocketConnection* conn) {
+        scope->onClose(conn);
+        const auto it = std::find_if(connections.begin(), connections.end(), [conn](auto& c) {
+            return c.get() == conn;
+        });
+        if (it != connections.end()) {
+            connections.erase(it);
         }
     }
 
-    ~Impl() {
-        stop = true;
+    void stop() {
+        stop_ = true;
+        socket.close();
         if (thread.joinable()) {
             thread.join();
         }
     }
 
-    std::atomic_bool stop = false;
+    ~Impl() {
+        stop();
+    }
+
+    std::atomic_bool stop_ = false;
     TCPServer socket;
     std::thread thread;
     WebSocket* scope;
+
+    std::vector<std::unique_ptr<WebSocketConnection>> connections;
 };
 
 
 WebSocket::WebSocket(uint16_t port)
     : pimpl_(std::make_unique<Impl>(this, port)) {}
 
-void WebSocket::stop() {
-    pimpl_->stop = true;
-    pimpl_->socket.close();
+void WebSocket::stop() const {
+    pimpl_->stop();
 }
 
-WebSocket::~WebSocket() = default;
+WebSocket::~WebSocket() {
+    stop();
+}

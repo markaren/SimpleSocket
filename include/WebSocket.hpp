@@ -14,7 +14,7 @@ class WebSocketConnection {
 public:
     explicit WebSocketConnection(WebSocket* socket, std::unique_ptr<TCPConnection> conn);
 
-    void send(const std::string& msg);
+    void send(const std::string& msg) const;
 
     ~WebSocketConnection();
 
@@ -35,9 +35,9 @@ public:
 
     virtual void onClose(WebSocketConnection* conn) = 0;
 
-    void stop();
+    void stop() const;
 
-    ~WebSocket();
+    virtual ~WebSocket();
 
 private:
     struct Impl;

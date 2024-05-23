@@ -3,7 +3,6 @@
 #include "WSASession.hpp"
 
 #include <iostream>
-#include <thread>
 
 namespace {
 
