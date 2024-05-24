@@ -33,6 +33,7 @@ inline void closeSocket(SOCKET socket) {
 #ifdef WIN32
         closesocket(socket);
 #else
+        shutdown(socket, SHUT_RD);
         close(socket);
 #endif
         socket = INVALID_SOCKET;

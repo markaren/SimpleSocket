@@ -1,7 +1,9 @@
 # SimpleSocket
 
-A simple cross-platform Socket (TCP/UDP) implementation for C++ (no external dependencies) 
+A simple cross-platform Socket (TCP/UDP/WebSockets) implementation for C++ (no external dependencies) 
 for education and hobby usage.
+
+> NOT for use in production.
 
 
 ### Downstream usage with CMake FetchContent

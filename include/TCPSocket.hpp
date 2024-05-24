@@ -22,6 +22,8 @@ public:
 
     virtual bool write(const std::vector<unsigned char>& data) = 0;
 
+    virtual void close() = 0;
+
     virtual ~TCPConnection() = default;
 };
 
@@ -41,7 +43,7 @@ public:
 
     bool write(const std::vector<unsigned char>& data) override;
 
-    void close();
+    void close() override;
 
     ~TCPSocket() override;
 
