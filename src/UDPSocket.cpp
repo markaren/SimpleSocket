@@ -7,9 +7,9 @@
 struct UDPSocket::Impl {
 
     explicit Impl(int localPort)
-        : sockfd(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+        : sockfd_(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
 
-        if (sockfd == INVALID_SOCKET) {
+        if (sockfd_ == INVALID_SOCKET) {
 
             throwSocketError("Failed to create socket");
         }
@@ -19,7 +19,7 @@ struct UDPSocket::Impl {
         local.sin_addr.s_addr = INADDR_ANY;
         local.sin_port = htons(localPort);
 
-        if (::bind(sockfd, (sockaddr*) &local, sizeof(local)) == SOCKET_ERROR) {
+        if (::bind(sockfd_, (sockaddr*) &local, sizeof(local)) == SOCKET_ERROR) {
 
             throwSocketError("Bind failed");
         }
@@ -34,7 +34,7 @@ struct UDPSocket::Impl {
             return false;
         }
 
-        return sendto(sockfd, data.c_str(), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
+        return sendto(sockfd_, data.c_str(), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
     }
 
     bool sendTo(const std::string& address, uint16_t port, const std::vector<unsigned char>& data) const {
@@ -46,7 +46,7 @@ struct UDPSocket::Impl {
             return false;
         }
 
-        return sendto(sockfd, reinterpret_cast<const char*>(data.data()), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
+        return sendto(sockfd_, reinterpret_cast<const char*>(data.data()), data.size(), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to)) != SOCKET_ERROR;
     }
 
     int recvFrom(const std::string& address, uint16_t port, std::vector<unsigned char>& buffer) const {
@@ -60,7 +60,7 @@ struct UDPSocket::Impl {
         }
         socklen_t fromLength = sizeof(from);
 
-        const auto receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
+        const auto receive = recvfrom(sockfd_, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
             return -1;
         }
@@ -81,7 +81,7 @@ struct UDPSocket::Impl {
 
         static std::vector<unsigned char> buffer(MAX_UDP_PACKET_SIZE);
 
-        const auto receive = recvfrom(sockfd, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
+        const auto receive = recvfrom(sockfd_, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
 
             return "";
@@ -92,7 +92,7 @@ struct UDPSocket::Impl {
 
     void close() const {
 
-        closeSocket(sockfd);
+        closeSocket(sockfd_);
     }
 
     ~Impl() {
@@ -101,7 +101,10 @@ struct UDPSocket::Impl {
     }
 
 private:
-    SOCKET sockfd;
+#ifdef WIN32
+    WSASession session_;
+#endif
+    SOCKET sockfd_;
 };
 
 

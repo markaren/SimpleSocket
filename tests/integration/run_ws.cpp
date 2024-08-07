@@ -1,12 +1,9 @@
 
 #include "WebSocket.hpp"
-#include "WSASession.hpp"
 
 #include <iostream>
 
 int main() {
-
-    WSASession session;
 
     WebSocket ws(8081);
     ws.onOpen = [](auto) {

@@ -6,14 +6,14 @@
 
 struct TCPSocket::Impl {
 
-    Impl(): sockfd(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
+    Impl(): sockfd_(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
 
-        if (sockfd == INVALID_SOCKET) {
+        if (sockfd_ == INVALID_SOCKET) {
             throwSocketError("Failed to create socket");
         }
 
         const int optval = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
+        setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
     }
 
     bool connect(const std::string& ip, int port) const {
@@ -25,7 +25,7 @@ struct TCPSocket::Impl {
             return false;
         }
 
-        return ::connect(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0;
+        return ::connect(sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0;
     }
 
     void bind(int port) const {
@@ -35,7 +35,7 @@ struct TCPSocket::Impl {
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(port);
 
-        if (::bind(sockfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
+        if (::bind(sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
             throwSocketError("Bind failed");
         }
@@ -43,7 +43,7 @@ struct TCPSocket::Impl {
 
     void listen(int backlog) const {
 
-        if (::listen(sockfd, backlog) < 0) {
+        if (::listen(sockfd_, backlog) < 0) {
 
             throwSocketError("Listen failed");
         }
@@ -53,7 +53,7 @@ struct TCPSocket::Impl {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
-        SOCKET new_sock = ::accept(sockfd, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
+        SOCKET new_sock = ::accept(sockfd_, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
 
         if (new_sock == INVALID_SOCKET) {
 
@@ -69,9 +69,9 @@ struct TCPSocket::Impl {
     bool read(unsigned char* buffer, size_t size, size_t* bytesRead) const {
 
 #ifdef _WIN32
-        auto read = recv(sockfd, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
+        auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
 #else
-        const auto read = ::read(sockfd, buffer, size);
+        const auto read = ::read(sockfd_, buffer, size);
 #endif
         if (bytesRead) *bytesRead = read;
 
@@ -84,9 +84,9 @@ struct TCPSocket::Impl {
         while (totalBytesReceived < size) {
             const auto remainingBytes = static_cast<int>(size) - totalBytesReceived;
 #ifdef _WIN32
-            auto read = recv(sockfd, reinterpret_cast<char*>(buffer + totalBytesReceived), remainingBytes, 0);
+            auto read = recv(sockfd_, reinterpret_cast<char*>(buffer + totalBytesReceived), remainingBytes, 0);
 #else
-            auto read = ::read(sockfd, buffer + totalBytesReceived, remainingBytes);
+            auto read = ::read(sockfd_, buffer + totalBytesReceived, remainingBytes);
 #endif
             if (read == SOCKET_ERROR || read == 0) {
 
@@ -102,7 +102,7 @@ struct TCPSocket::Impl {
 
         const auto size = static_cast<int>(buffer.size());
 
-        return send(sockfd, buffer.data(), size, 0) != SOCKET_ERROR;
+        return send(sockfd_, buffer.data(), size, 0) != SOCKET_ERROR;
     }
 
     bool write(const std::vector<unsigned char>& buffer) const {
@@ -110,15 +110,15 @@ struct TCPSocket::Impl {
         const auto size = static_cast<int>(buffer.size());
 
 #ifdef _WIN32
-        return send(sockfd, reinterpret_cast<const char*>(buffer.data()), size, 0) != SOCKET_ERROR;
+        return send(sockfd_, reinterpret_cast<const char*>(buffer.data()), size, 0) != SOCKET_ERROR;
 #else
-        return ::write(sockfd, buffer.data(), buffer.size()) != SOCKET_ERROR;
+        return ::write(sockfd_, buffer.data(), buffer.size()) != SOCKET_ERROR;
 #endif
     }
 
     void close() const {
 
-        closeSocket(sockfd);
+        closeSocket(sockfd_);
     }
 
     ~Impl() {
@@ -127,12 +127,16 @@ struct TCPSocket::Impl {
     }
 
 private:
-    SOCKET sockfd;
+#ifdef WIN32
+    WSASession session_;
+#endif
+
+    SOCKET sockfd_;
 
     void assign(SOCKET new_sock) {
         close();
 
-        sockfd = new_sock;
+        sockfd_ = new_sock;
     }
 };
 

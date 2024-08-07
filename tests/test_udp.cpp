@@ -1,13 +1,10 @@
 
 #include "UDPSocket.hpp"
-#include "WSASession.hpp"
 #include "AvailablePortQuery.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Test UDP") {
-
-    WSASession session;
 
     std::string address{"127.0.0.1"};
     int serverPort = getAvailablePort(8000, 9000);

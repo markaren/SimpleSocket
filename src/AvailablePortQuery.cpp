@@ -6,6 +6,11 @@
 #include <algorithm>
 
 int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
+
+#ifdef WIN32
+    WSASession session;
+#endif
+
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == SOCKET_ERROR) {
         return -1;

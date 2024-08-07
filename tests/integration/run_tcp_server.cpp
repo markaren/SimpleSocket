@@ -1,5 +1,4 @@
 #include "TCPSocket.hpp"
-#include "WSASession.hpp"
 
 #include <atomic>
 #include <iostream>
@@ -17,8 +16,6 @@ void socketHandler(std::unique_ptr<TCPConnection> conn) {
 }
 
 int main() {
-
-    WSASession session;
 
     TCPServer server(8080);
 
