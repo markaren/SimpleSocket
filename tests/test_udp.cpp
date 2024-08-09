@@ -1,6 +1,6 @@
 
 #include "UDPSocket.hpp"
-#include "AvailablePortQuery.hpp"
+#include "port_query.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 

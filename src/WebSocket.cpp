@@ -1,8 +1,8 @@
 
 #include "WebSocket.hpp"
-#include "SocketIncludes.hpp"
 #include "TCPSocket.hpp"
 #include "WebSocketHandshake.hpp"
+#include "common.hpp"
 
 #include <algorithm>
 #include <atomic>
