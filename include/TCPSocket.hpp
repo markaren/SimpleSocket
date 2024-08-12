@@ -1,6 +1,6 @@
 
-#ifndef SPHEROSIM_SOCKET_HPP
-#define SPHEROSIM_SOCKET_HPP
+#ifndef SIMPLE_SOCKET_TCPSOCKET_HPP
+#define SIMPLE_SOCKET_TCPSOCKET_HPP
 
 #include <memory>
 #include <string>
@@ -67,4 +67,4 @@ public:
     std::unique_ptr<TCPConnection> accept();
 };
 
-#endif// SPHEROSIM_SOCKET_HPP
+#endif// SIMPLE_SOCKET_TCPSOCKET_HPP
