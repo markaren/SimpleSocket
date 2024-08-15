@@ -32,6 +32,7 @@ inline void closeSocket(SOCKET socket) {
 
     if (socket != INVALID_SOCKET) {
 #ifdef _WIN32
+        shutdown(socket, SD_BOTH);
         closesocket(socket);
 #else
         shutdown(socket, SHUT_RD);
