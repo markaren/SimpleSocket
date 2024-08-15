@@ -31,7 +31,7 @@ inline void throwSocketError(const std::string& msg) {
 inline void closeSocket(SOCKET socket) {
 
     if (socket != INVALID_SOCKET) {
-#ifdef WIN32
+#ifdef _WIN32
         closesocket(socket);
 #else
         shutdown(socket, SHUT_RD);

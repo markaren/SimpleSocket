@@ -7,7 +7,7 @@
 
 int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
 
-#ifdef WIN32
+#ifdef _WIN32
     WSASession session;
 #endif
 
