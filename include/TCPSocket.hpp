@@ -49,10 +49,7 @@ namespace simple_socket {
 
         ~TCPSocket() override;
 
-    private:
-        friend class TCPClient;
-        friend class TCPServer;
-
+    protected:
         struct Impl;
         std::unique_ptr<Impl> pimpl_;
     };
@@ -65,6 +62,18 @@ namespace simple_socket {
     class TCPServer: public TCPSocket {
     public:
         explicit TCPServer(int port, int backlog = 1);
+
+        std::unique_ptr<TCPConnection> accept();
+    };
+
+    class UnixDomainClient: public TCPSocket {
+    public:
+        bool connect(const std::string& domain);
+    };
+
+    class UnixDomainServer: public TCPSocket {
+    public:
+        explicit UnixDomainServer(const std::string& domain, int backlog = 1);
 
         std::unique_ptr<TCPConnection> accept();
     };
