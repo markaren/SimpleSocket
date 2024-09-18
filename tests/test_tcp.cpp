@@ -7,6 +7,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+using namespace simple_socket;
+
 namespace {
 
     std::string generateMessage() {

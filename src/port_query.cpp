@@ -5,7 +5,9 @@
 
 #include <algorithm>
 
-int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
+using namespace simple_socket;
+
+int simple_socket::getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
 
 #ifdef _WIN32
     WSASession session;

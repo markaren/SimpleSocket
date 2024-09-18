@@ -10,25 +10,29 @@
 #define MAX_UDP_PACKET_SIZE 65507
 #endif
 
-class UDPSocket{
-public:
-    explicit UDPSocket(int localPort);
+namespace simple_socket {
 
-    bool sendTo(const std::string& address, uint16_t remotePort, const std::string& data);
+    class UDPSocket {
+    public:
+        explicit UDPSocket(int localPort);
 
-    bool sendTo(const std::string& address, uint16_t remotePort, const std::vector<unsigned char>& data);
+        bool sendTo(const std::string& address, uint16_t remotePort, const std::string& data);
 
-    int recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer);
+        bool sendTo(const std::string& address, uint16_t remotePort, const std::vector<unsigned char>& data);
 
-    [[nodiscard]] std::string recvFrom(const std::string& address, uint16_t remotePort);
+        int recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer);
 
-    void close();
+        [[nodiscard]] std::string recvFrom(const std::string& address, uint16_t remotePort);
 
-    ~UDPSocket();
+        void close();
 
-private:
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
-};
+        ~UDPSocket();
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
+    };
+
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_UDPSOCKET_HPP

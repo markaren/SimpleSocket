@@ -10,6 +10,8 @@
 #include <sstream>
 #include <thread>
 
+using namespace simple_socket;
+
 namespace {
 
     std::vector<uint8_t> createFrame(const std::string& message) {

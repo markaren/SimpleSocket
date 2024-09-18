@@ -2,6 +2,7 @@
 #ifndef SIMPLE_SOCKET_COMMON_HPP
 #define SIMPLE_SOCKET_COMMON_HPP
 
+#include <system_error>
 
 #ifdef _WIN32
 #include "WSASession.hpp"
@@ -16,31 +17,32 @@ using SOCKET = int;
 #define SOCKET_ERROR (-1)
 #endif
 
-#include <system_error>
 
+namespace simple_socket {
 
-inline void throwSocketError(const std::string& msg) {
+    inline void throwSocketError(const std::string& msg) {
 
 #ifdef _WIN32
-    throw std::system_error(WSAGetLastError(), std::system_category(), msg);
+        throw std::system_error(WSAGetLastError(), std::system_category(), msg);
 #else
-    throw std::system_error(errno, std::generic_category(), msg);
+        throw std::system_error(errno, std::generic_category(), msg);
 #endif
-}
-
-inline void closeSocket(SOCKET socket) {
-
-    if (socket != INVALID_SOCKET) {
-#ifdef _WIN32
-        shutdown(socket, SD_BOTH);
-        closesocket(socket);
-#else
-        shutdown(socket, SHUT_RD);
-        close(socket);
-#endif
-        socket = INVALID_SOCKET;
     }
-}
 
+    inline void closeSocket(SOCKET socket) {
+
+        if (socket != INVALID_SOCKET) {
+#ifdef _WIN32
+            shutdown(socket, SD_BOTH);
+            closesocket(socket);
+#else
+            shutdown(socket, SHUT_RD);
+            close(socket);
+#endif
+            socket = INVALID_SOCKET;
+        }
+    }
+
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_COMMON_HPP

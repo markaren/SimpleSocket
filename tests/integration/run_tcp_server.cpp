@@ -5,6 +5,8 @@
 #include <thread>
 #include <vector>
 
+using namespace simple_socket;
+
 void socketHandler(std::unique_ptr<TCPConnection> conn) {
 
     std::vector<unsigned char> buffer(1024);

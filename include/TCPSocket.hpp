@@ -8,63 +8,67 @@
 
 // This Socket interface is not production grade
 
-class TCPConnection {
-public:
-    virtual int read(std::vector<unsigned char>& buffer) = 0;
+namespace simple_socket {
 
-    virtual int read(unsigned char* buffer, size_t size) = 0;
+    class TCPConnection {
+    public:
+        virtual int read(std::vector<unsigned char>& buffer) = 0;
 
-    virtual bool readExact(std::vector<unsigned char>& buffer) = 0;
+        virtual int read(unsigned char* buffer, size_t size) = 0;
 
-    virtual bool readExact(unsigned char* buffer, size_t size) = 0;
+        virtual bool readExact(std::vector<unsigned char>& buffer) = 0;
 
-    virtual bool write(const std::string& message) = 0;
+        virtual bool readExact(unsigned char* buffer, size_t size) = 0;
 
-    virtual bool write(const std::vector<unsigned char>& data) = 0;
+        virtual bool write(const std::string& message) = 0;
 
-    virtual void close() = 0;
+        virtual bool write(const std::vector<unsigned char>& data) = 0;
 
-    virtual ~TCPConnection() = default;
-};
+        virtual void close() = 0;
 
-class TCPSocket: public TCPConnection {
-public:
-    TCPSocket();
+        virtual ~TCPConnection() = default;
+    };
 
-    int read(std::vector<unsigned char>& buffer) override;
+    class TCPSocket: public TCPConnection {
+    public:
+        TCPSocket();
 
-    int read(unsigned char* buffer, size_t size) override;
+        int read(std::vector<unsigned char>& buffer) override;
 
-    bool readExact(std::vector<unsigned char>& buffer) override;
+        int read(unsigned char* buffer, size_t size) override;
 
-    bool readExact(unsigned char* buffer, size_t size) override;
+        bool readExact(std::vector<unsigned char>& buffer) override;
 
-    bool write(const std::string& message) override;
+        bool readExact(unsigned char* buffer, size_t size) override;
 
-    bool write(const std::vector<unsigned char>& data) override;
+        bool write(const std::string& message) override;
 
-    void close() override;
+        bool write(const std::vector<unsigned char>& data) override;
 
-    ~TCPSocket() override;
+        void close() override;
 
-private:
-    friend class TCPClient;
-    friend class TCPServer;
+        ~TCPSocket() override;
 
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
-};
+    private:
+        friend class TCPClient;
+        friend class TCPServer;
 
-class TCPClient: public TCPSocket {
-public:
-    bool connect(const std::string& ip, int port);
-};
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
+    };
 
-class TCPServer: public TCPSocket {
-public:
-    explicit TCPServer(int port, int backlog = 1);
+    class TCPClient: public TCPSocket {
+    public:
+        bool connect(const std::string& ip, int port);
+    };
 
-    std::unique_ptr<TCPConnection> accept();
-};
+    class TCPServer: public TCPSocket {
+    public:
+        explicit TCPServer(int port, int backlog = 1);
+
+        std::unique_ptr<TCPConnection> accept();
+    };
+
+}// namespace simple_socket
 
 #endif// SIMPLE_SOCKET_TCPSOCKET_HPP

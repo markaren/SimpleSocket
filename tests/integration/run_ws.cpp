@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+using namespace simple_socket;
+
 int main() {
 
     WebSocket ws(8081);

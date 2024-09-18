@@ -4,6 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+using namespace simple_socket;
+
 TEST_CASE("Test UDP") {
 
     std::string address{"127.0.0.1"};

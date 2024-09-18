@@ -14,26 +14,30 @@ namespace {
 
 }// namespace
 
-class WSASession {
-public:
-    WSASession() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (ref_count_ == 0) {
-            WSADATA wsaData;
-            if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-                throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to initialize winsock");
+namespace simple_socket {
+
+    class WSASession {
+    public:
+        WSASession() {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (ref_count_ == 0) {
+                WSADATA wsaData;
+                if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+                    throw std::system_error(WSAGetLastError(), std::system_category(), "Failed to initialize winsock");
+                }
+            }
+            ++ref_count_;
+        }
+
+        ~WSASession() {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (--ref_count_ == 0) {
+                WSACleanup();
             }
         }
-        ++ref_count_;
-    }
+    };
 
-    ~WSASession() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (--ref_count_ == 0) {
-            WSACleanup();
-        }
-    }
-};
+}
 
 
 #endif//SIMPLE_SOCKET_WSASESSION_HPP

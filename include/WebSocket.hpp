@@ -2,34 +2,38 @@
 #ifndef SIMPLE_SOCKET_WEBSOCKET_HPP
 #define SIMPLE_SOCKET_WEBSOCKET_HPP
 
+#include <functional>
 #include <memory>
 #include <string>
-#include <functional>
 
-class WebSocketConnection {
+namespace simple_socket {
 
-public:
-    virtual void send(const std::string& msg) = 0;
+    class WebSocketConnection {
 
-    virtual ~WebSocketConnection() = default;
-};
+    public:
+        virtual void send(const std::string& msg) = 0;
 
-class WebSocket {
+        virtual ~WebSocketConnection() = default;
+    };
 
-public:
-    std::function<void(WebSocketConnection*)> onOpen;
-    std::function<void(WebSocketConnection*)> onClose;
-    std::function<void(WebSocketConnection*, const std::string&)> onMessage;
+    class WebSocket {
 
-    explicit WebSocket(uint16_t port);
+    public:
+        std::function<void(WebSocketConnection*)> onOpen;
+        std::function<void(WebSocketConnection*)> onClose;
+        std::function<void(WebSocketConnection*, const std::string&)> onMessage;
 
-    void stop() const;
+        explicit WebSocket(uint16_t port);
 
-    ~WebSocket();
+        void stop() const;
 
-private:
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
-};
+        ~WebSocket();
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
+    };
+
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_WEBSOCKET_HPP
