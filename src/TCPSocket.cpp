@@ -49,7 +49,7 @@ struct TCPSocket::Impl {
         }
     }
 
-    std::unique_ptr<TCPConnection> accept() const {
+    [[nodiscard]] std::unique_ptr<TCPConnection> accept() const {
 
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
@@ -69,7 +69,7 @@ struct TCPSocket::Impl {
     bool read(unsigned char* buffer, size_t size, size_t* bytesRead) const {
 
 #ifdef _WIN32
-        auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
+        const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
 #else
         const auto read = ::read(sockfd_, buffer, size);
 #endif
@@ -80,13 +80,13 @@ struct TCPSocket::Impl {
 
     bool readExact(unsigned char* buffer, size_t size) const {
 
-        int totalBytesReceived = 0;
+        size_t totalBytesReceived = 0;
         while (totalBytesReceived < size) {
-            const auto remainingBytes = static_cast<int>(size) - totalBytesReceived;
+            const auto remainingBytes = size - totalBytesReceived;
 #ifdef _WIN32
-            auto read = recv(sockfd_, reinterpret_cast<char*>(buffer + totalBytesReceived), remainingBytes, 0);
+            const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer + totalBytesReceived), static_cast<int>(remainingBytes), 0);
 #else
-            auto read = ::read(sockfd_, buffer + totalBytesReceived, remainingBytes);
+            const auto read = ::read(sockfd_, buffer + totalBytesReceived, remainingBytes);
 #endif
             if (read == SOCKET_ERROR || read == 0) {
 
@@ -107,10 +107,8 @@ struct TCPSocket::Impl {
 
     bool write(const std::vector<unsigned char>& buffer) const {
 
-        const auto size = static_cast<int>(buffer.size());
-
 #ifdef _WIN32
-        return send(sockfd_, reinterpret_cast<const char*>(buffer.data()), size, 0) != SOCKET_ERROR;
+        return send(sockfd_, reinterpret_cast<const char*>(buffer.data()), static_cast<int>(buffer.size()), 0) != SOCKET_ERROR;
 #else
         return ::write(sockfd_, buffer.data(), buffer.size()) != SOCKET_ERROR;
 #endif

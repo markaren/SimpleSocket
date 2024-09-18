@@ -68,7 +68,7 @@ struct UDPSocket::Impl {
         return receive;
     }
 
-    std::string recvFrom(const std::string& address, uint16_t port) const {
+    [[nodiscard]]std::string recvFrom(const std::string& address, uint16_t port) const {
 
         sockaddr_in from{};
         from.sin_family = AF_INET;
@@ -79,7 +79,7 @@ struct UDPSocket::Impl {
         }
         socklen_t fromLength = sizeof(from);
 
-        static std::vector<unsigned char> buffer(MAX_UDP_PACKET_SIZE);
+        thread_local std::vector<unsigned char> buffer(MAX_UDP_PACKET_SIZE);
 
         const auto receive = recvfrom(sockfd_, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromLength);
         if (receive == SOCKET_ERROR) {
