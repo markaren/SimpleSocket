@@ -15,12 +15,12 @@ namespace simple_socket {
                 throwSocketError("Failed to create socket");
             }
 
-            sockaddr_in local{};
-            local.sin_family = AF_INET;
-            local.sin_addr.s_addr = INADDR_ANY;
-            local.sin_port = htons(localPort);
+            sockaddr_in addr{};
+            addr.sin_family = AF_INET;
+            addr.sin_addr.s_addr = INADDR_ANY;
+            addr.sin_port = htons(localPort);
 
-            if (::bind(sockfd_, (sockaddr*) &local, sizeof(local)) == SOCKET_ERROR) {
+            if (::bind(sockfd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR) {
 
                 throwSocketError("Bind failed");
             }
