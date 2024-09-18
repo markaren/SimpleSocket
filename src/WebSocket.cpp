@@ -97,7 +97,7 @@ public:
             if (frame.size() < 2) return;
 
             uint8_t opcode = frame[0] & 0x0F;
-            bool isFinal = (frame[0] & 0x80) != 0;
+            // bool isFinal = (frame[0] & 0x80) != 0;
             bool isMasked = (frame[1] & 0x80) != 0;
             uint64_t payloadLen = frame[1] & 0x7F;
 
