@@ -1,11 +1,13 @@
 
+#include "simple_socket/Socket.hpp"
 #include "simple_socket/TCPSocket.hpp"
+#include "simple_socket/UnixDomainSocket.hpp"
 
 #include "simple_socket/common.hpp"
 
 namespace simple_socket {
 
-    struct TCPSocket::Impl {
+    struct Socket::Impl {
 
         Impl(): sockfd_(INVALID_SOCKET) {
 
@@ -94,7 +96,7 @@ namespace simple_socket {
             }
         }
 
-        [[nodiscard]] std::unique_ptr<TCPConnection> acceptTCP() const {
+        [[nodiscard]] std::unique_ptr<SocketConnection> acceptTCP() const {
 
             sockaddr_in client_addr{};
             socklen_t addrlen = sizeof(client_addr);
@@ -105,13 +107,13 @@ namespace simple_socket {
                 throwSocketError("Accept failed");
             }
 
-            auto conn = std::make_unique<TCPSocket>();
+            auto conn = std::make_unique<Socket>();
             conn->pimpl_->assign(new_sock);
 
             return conn;
         }
 
-        [[nodiscard]] std::unique_ptr<TCPConnection> acceptUnix() const {
+        [[nodiscard]] std::unique_ptr<SocketConnection> acceptUnix() const {
 
             SOCKET new_sock = ::accept(sockfd_, nullptr, nullptr);
 
@@ -120,7 +122,7 @@ namespace simple_socket {
                 throwSocketError("Accept failed");
             }
 
-            auto conn = std::make_unique<TCPSocket>();
+            auto conn = std::make_unique<Socket>();
             conn->pimpl_->assign(new_sock);
 
             return conn;
@@ -198,9 +200,9 @@ namespace simple_socket {
         }
     };
 
-    TCPSocket::TCPSocket(): pimpl_(std::make_unique<Impl>()) {}
+    Socket::Socket(): pimpl_(std::make_unique<Impl>()) {}
 
-    int TCPSocket::read(std::vector<unsigned char>& buffer) {
+    int Socket::read(std::vector<unsigned char>& buffer) {
 
         size_t bytesRead = 0;
         const auto success = pimpl_->read(buffer.data(), buffer.size(), &bytesRead);
@@ -208,7 +210,7 @@ namespace simple_socket {
         return success ? static_cast<int>(bytesRead) : -1;
     }
 
-    int TCPSocket::read(unsigned char* buffer, size_t size) {
+    int Socket::read(unsigned char* buffer, size_t size) {
 
         size_t bytesRead = 0;
         const auto success = pimpl_->read(buffer, size, &bytesRead);
@@ -216,34 +218,34 @@ namespace simple_socket {
         return success ? static_cast<int>(bytesRead) : -1;
     }
 
-    bool TCPSocket::readExact(std::vector<unsigned char>& buffer) {
+    bool Socket::readExact(std::vector<unsigned char>& buffer) {
 
         return pimpl_->readExact(buffer.data(), buffer.size());
     }
 
-    bool TCPSocket::readExact(unsigned char* buffer, size_t size) {
+    bool Socket::readExact(unsigned char* buffer, size_t size) {
 
         return pimpl_->readExact(buffer, size);
     }
 
-    bool TCPSocket::write(const std::string& buffer) {
+    bool Socket::write(const std::string& buffer) {
 
         if (buffer.empty()) return false;
 
         return pimpl_->write(buffer);
     }
 
-    bool TCPSocket::write(const std::vector<unsigned char>& buffer) {
+    bool Socket::write(const std::vector<unsigned char>& buffer) {
 
         return pimpl_->write(buffer);
     }
 
-    void TCPSocket::close() {
+    void Socket::close() {
 
         pimpl_->close();
     }
 
-    TCPSocket::~TCPSocket() = default;
+    Socket::~Socket() = default;
 
 
     bool TCPClient::connect(const std::string& ip, int port) {
@@ -258,7 +260,7 @@ namespace simple_socket {
         pimpl_->listen(backlog);
     }
 
-    std::unique_ptr<TCPConnection> TCPServer::accept() {
+    std::unique_ptr<SocketConnection> TCPServer::accept() {
 
         return pimpl_->acceptTCP();
     }
@@ -269,7 +271,7 @@ namespace simple_socket {
         return pimpl_->connect(domain);
     }
 
-    std::unique_ptr<TCPConnection> UnixDomainServer::accept() {
+    std::unique_ptr<SocketConnection> UnixDomainServer::accept() {
 
         return pimpl_->acceptUnix();
     }

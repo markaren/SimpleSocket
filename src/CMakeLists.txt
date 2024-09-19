@@ -2,8 +2,10 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
         "simple_socket/port_query.hpp"
+        "simple_socket/Socket.hpp"
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
+        "simple_socket/UnixDomainSocket.hpp"
         "simple_socket/WebSocket.hpp"
 )
 
@@ -20,7 +22,7 @@ set(privateHeaders
 
 set(sources
         "simple_socket/port_query.cpp"
-        "simple_socket/TCPSocket.cpp"
+        "simple_socket/Socket.cpp"
         "simple_socket/UDPSocket.cpp"
         "simple_socket/WebSocket.cpp"
 )

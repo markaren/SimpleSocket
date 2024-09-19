@@ -1,6 +1,5 @@
 
-#include "TCPSocket.hpp"
-#include "port_query.hpp"
+#include "simple_socket/UnixDomainSocket.hpp"
 
 #include <thread>
 #include <vector>
@@ -21,7 +20,7 @@ namespace {
         return "Hello " + msg + "!";
     }
 
-    void socketHandler(std::unique_ptr<TCPConnection> conn) {
+    void socketHandler(std::unique_ptr<SocketConnection> conn) {
 
         std::vector<unsigned char> buffer(1024);
         const auto bytesRead = conn->read(buffer);
@@ -49,7 +48,7 @@ TEST_CASE("UNIX Domain Socket read/write") {
     UnixDomainClient client;
 
     std::thread serverThread([&server] {
-        std::unique_ptr<TCPConnection> conn;
+        std::unique_ptr<SocketConnection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
     });
