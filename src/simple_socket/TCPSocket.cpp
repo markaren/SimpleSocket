@@ -1,7 +1,7 @@
 
-#include "TCPSocket.hpp"
+#include "simple_socket/TCPSocket.hpp"
 
-#include "common.hpp"
+#include "simple_socket/common.hpp"
 
 namespace simple_socket {
 

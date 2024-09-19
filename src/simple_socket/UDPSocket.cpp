@@ -1,7 +1,7 @@
 
-#include "UDPSocket.hpp"
+#include "simple_socket/UDPSocket.hpp"
 
-#include "common.hpp"
+#include "simple_socket/common.hpp"
 
 namespace simple_socket {
 

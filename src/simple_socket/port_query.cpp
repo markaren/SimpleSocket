@@ -1,7 +1,7 @@
 
-#include "port_query.hpp"
+#include "simple_socket/port_query.hpp"
 
-#include "common.hpp"
+#include "simple_socket/common.hpp"
 
 #include <algorithm>
 

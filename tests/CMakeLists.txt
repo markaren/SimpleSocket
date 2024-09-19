@@ -10,7 +10,6 @@ target_link_libraries(test_udp PRIVATE simple_socket Catch2::Catch2WithMain)
 if (UNIX)
     target_link_libraries(test_tcp PRIVATE pthread)
     target_link_libraries(test_udp PRIVATE pthread)
-
 endif ()
 
 add_subdirectory(integration)
