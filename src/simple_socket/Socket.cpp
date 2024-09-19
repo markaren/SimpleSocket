@@ -9,15 +9,7 @@ namespace simple_socket {
 
     struct Socket::Impl {
 
-        Impl(): sockfd_(INVALID_SOCKET) {
-
-            // if (sockfd_ == INVALID_SOCKET) {
-            //     throwSocketError("Failed to create socket");
-            // }
-
-            // const int optval = 1;
-            // setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
-        }
+        Impl(): sockfd_(INVALID_SOCKET) {}
 
         void setupSocket(int domain, int protocol) {
             sockfd_ = socket(domain, SOCK_STREAM, protocol);
