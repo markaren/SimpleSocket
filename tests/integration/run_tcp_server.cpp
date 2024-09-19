@@ -7,12 +7,12 @@
 
 using namespace simple_socket;
 
-void socketHandler(std::unique_ptr<TCPConnection> conn) {
+void socketHandler(std::unique_ptr<SocketConnection> conn) {
 
     std::vector<unsigned char> buffer(1024);
-    auto n = conn->read(buffer);
+    const auto n = conn->read(buffer);
 
-    std::string msg(buffer.begin(), buffer.begin() + static_cast<int>(n));
+    std::string msg{buffer.begin(), buffer.begin() + n};
     std::cout << "Received from client: " << msg << std::endl;
     conn->write("Hello " + msg + "!");
 }
@@ -24,10 +24,10 @@ int main() {
     std::atomic_bool stop = false;
     std::thread t([&] {
         while (!stop) {
-            std::unique_ptr<TCPConnection> conn;
+            std::unique_ptr<SocketConnection> conn;
             try {
                 conn = server.accept();
-            } catch (const std::exception& e) {
+            } catch (const std::exception&) {
                 continue;
             }
 

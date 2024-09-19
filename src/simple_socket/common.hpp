@@ -7,10 +7,12 @@
 #ifdef _WIN32
 #include "WSASession.hpp"
 #include <WinSock2.h>
+#include <afunix.h>
 #include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 using SOCKET = int;
 #define INVALID_SOCKET (SOCKET)(~0)
@@ -41,6 +43,14 @@ namespace simple_socket {
 #endif
             socket = INVALID_SOCKET;
         }
+    }
+
+    inline void unlinkPath(const std::string& path) {
+#ifdef _WIN32
+        DeleteFile(path.c_str());
+#else
+        unlink(path.c_str());
+#endif
     }
 
 }// namespace simple_socket

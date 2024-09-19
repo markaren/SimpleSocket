@@ -39,7 +39,7 @@ namespace {
 class WebSocketConnectionImpl: public WebSocketConnection {
 
 public:
-    WebSocketConnectionImpl(WebSocket* socket, std::unique_ptr<TCPConnection> conn)
+    WebSocketConnectionImpl(WebSocket* socket, std::unique_ptr<SocketConnection> conn)
         : socket(socket), conn(std::move(conn)) {
 
         handshake();
@@ -182,7 +182,7 @@ public:
 
     std::atomic_bool closed{false};
     WebSocket* socket;
-    std::unique_ptr<TCPConnection> conn;
+    std::unique_ptr<SocketConnection> conn;
     std::thread thread;
 };
 
