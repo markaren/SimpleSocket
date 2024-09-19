@@ -1,6 +1,6 @@
 
-#include "TCPSocket.hpp"
-#include "port_query.hpp"
+#include "simple_socket/TCPSocket.hpp"
+#include "simple_socket/port_query.hpp"
 
 #include <thread>
 #include <vector>

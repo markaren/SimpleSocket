@@ -15,7 +15,6 @@ if (UNIX)
     target_link_libraries(test_tcp PRIVATE pthread)
     target_link_libraries(test_udp PRIVATE pthread)
     target_link_libraries(test_un PRIVATE pthread)
-
 endif ()
 
 add_subdirectory(integration)
