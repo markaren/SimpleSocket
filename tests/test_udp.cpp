@@ -9,8 +9,8 @@ using namespace simple_socket;
 TEST_CASE("Test UDP") {
 
     std::string address{"127.0.0.1"};
-    int serverPort = getAvailablePort(8000, 9000);
-    int clientPort = getAvailablePort(8000, 9000, {serverPort});
+    const auto serverPort = getAvailablePort(8000, 9000);
+    const auto clientPort = getAvailablePort(8000, 9000, {serverPort});
 
     REQUIRE(serverPort != -1);
     REQUIRE(clientPort != -1);
@@ -21,7 +21,7 @@ TEST_CASE("Test UDP") {
     REQUIRE(socket1.sendTo(address, clientPort, "Hello"));
 
     std::vector<unsigned char> buffer(1024);
-    int read = socket2.recvFrom(address, serverPort, buffer);
+    const auto read = socket2.recvFrom(address, serverPort, buffer);
     REQUIRE(read != -1);
 
     std::string result(buffer.begin(), buffer.begin() + read);

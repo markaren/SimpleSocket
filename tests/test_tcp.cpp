@@ -39,7 +39,7 @@ namespace {
 
 TEST_CASE("TCP read/write") {
 
-    int port = getAvailablePort(8000, 9000);
+    const auto port = getAvailablePort(8000, 9000);
     REQUIRE(port != -1);
 
     TCPServer server(port);
@@ -64,7 +64,7 @@ TEST_CASE("TCP read/write") {
         std::vector<unsigned char> buffer(1024);
         const auto bytesRead = client.read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
-        std::string response(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead));
+        std::string response(buffer.begin(), buffer.begin() + bytesRead);
 
         CHECK(response == expectedResponse);
     });
@@ -80,7 +80,7 @@ TEST_CASE("TCP read/write") {
 
 TEST_CASE("TCP readexact/write") {
 
-    int port = getAvailablePort(8000, 9000);
+    const auto port = getAvailablePort(8000, 9000);
     REQUIRE(port != -1);
 
     TCPServer server(port);
@@ -105,7 +105,6 @@ TEST_CASE("TCP readexact/write") {
         REQUIRE(client.readExact(buffer));
 
         std::string response(buffer.begin(), buffer.end());
-
         CHECK(response == expectedResponse);
     });
 
