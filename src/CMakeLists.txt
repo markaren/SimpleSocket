@@ -12,8 +12,6 @@ set(publicHeaders
 
 set(privateHeaders
         "simple_socket/common.hpp"
-        "simple_socket/WebSocketHandshake.hpp"
-        "simple_socket/WSASession.hpp"
 )
 
 set(sources
@@ -26,6 +24,11 @@ set(sources
 if (WIN32)
     list(APPEND publicHeaders
             "simple_socket/Pipe.hpp"
+    )
+
+    list(APPEND privateHeaders
+            "simple_socket/WebSocketHandshake.hpp"
+            "simple_socket/WSASession.hpp"
     )
 
     list(APPEND sources
