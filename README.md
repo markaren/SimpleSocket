@@ -3,6 +3,8 @@
 A simple cross-platform Socket (TCP, UDP, Web and Unix Domain Sockets) implementation for C++ (no external dependencies) 
 for education and hobby usage.
 
+On Windows, Named Pipes are also available.
+
 > NOT for use in production.
 
 
