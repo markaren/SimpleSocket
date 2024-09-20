@@ -5,7 +5,7 @@
 
 int main() {
 
-    auto conn = NamedPipe::connect("PingPongPipe", 500);
+    const auto conn = NamedPipe::connect("PingPongPipe", 500);
 
     if (!conn) return 1;
 

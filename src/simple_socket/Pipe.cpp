@@ -21,13 +21,14 @@ struct NamedPipe::Impl {
     }
 
     static std::unique_ptr<NamedPipe> createPipe(HANDLE hPipe) {
-        auto pipe = std::make_unique<NamedPipe>();
+        auto pipe = std::make_unique<NamedPipe>(PassKey());
         pipe->pimpl_->hPipe_ = hPipe;
         return pipe;
     }
 };
 
-NamedPipe::NamedPipe(): pimpl_(std::make_unique<Impl>()) {}
+NamedPipe::NamedPipe(PassKey)
+    : pimpl_(std::make_unique<Impl>()) {}
 
 NamedPipe::NamedPipe(NamedPipe&& other) noexcept: pimpl_(std::make_unique<Impl>()) {
     other.pimpl_->hPipe_ = INVALID_HANDLE_VALUE;
@@ -42,7 +43,7 @@ bool NamedPipe::send(const std::string& message) {
     return true;
 }
 
-size_t NamedPipe::receive(std::vector<unsigned char>& buffer) {
+int NamedPipe::receive(std::vector<unsigned char>& buffer) {
 
     DWORD bytesRead;
     if (!ReadFile(pimpl_->hPipe_, buffer.data(), buffer.size() - 1, &bytesRead, nullptr)) {
@@ -50,7 +51,7 @@ size_t NamedPipe::receive(std::vector<unsigned char>& buffer) {
         return -1;
     }
     buffer[bytesRead] = '\0';
-    return bytesRead;
+    return static_cast<int>(bytesRead);
 }
 
 std::unique_ptr<NamedPipe> NamedPipe::listen(const std::string& name) {
@@ -70,13 +71,10 @@ std::unique_ptr<NamedPipe> NamedPipe::listen(const std::string& name) {
         return nullptr;
     }
 
-    std::cout << "Waiting for client connection..." << std::endl;
     if (!ConnectNamedPipe(hPipe, nullptr)) {
         std::cerr << "Failed to connect pipe. Error: " << GetLastError() << std::endl;
         return nullptr;
     }
-
-    std::cout << "Pipe created successfully!" << std::endl;
 
     return Impl::createPipe(hPipe);
 }
@@ -120,4 +118,5 @@ std::unique_ptr<NamedPipe> NamedPipe::connect(const std::string& name, long time
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
+
 NamedPipe::~NamedPipe() = default;

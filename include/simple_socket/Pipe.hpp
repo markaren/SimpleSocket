@@ -7,8 +7,13 @@
 #include <vector>
 
 class NamedPipe {
+
+    struct PassKey {
+        friend class NamedPipe;
+    };
+
 public:
-    NamedPipe();
+    explicit NamedPipe(PassKey passKey);
 
     NamedPipe(NamedPipe&& other) noexcept;
 
@@ -17,7 +22,7 @@ public:
 
     bool send(const std::string& message);
 
-    size_t receive(std::vector<unsigned char>& buffer);
+    int receive(std::vector<unsigned char>& buffer);
 
     static std::unique_ptr<NamedPipe> listen(const std::string& name);
 
@@ -26,6 +31,7 @@ public:
     ~NamedPipe();
 
 private:
+
     struct Impl;
     std::unique_ptr<Impl> pimpl_;
 };

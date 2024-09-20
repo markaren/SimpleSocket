@@ -5,7 +5,8 @@
 
 int main() {
 
-    auto conn = NamedPipe::listen("PingPongPipe");
+    std::cout << "Waiting for client connection..." << std::endl;
+    const auto conn = NamedPipe::listen("PingPongPipe");
 
     if (!conn) return 1;
 
