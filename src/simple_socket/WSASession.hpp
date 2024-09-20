@@ -7,11 +7,14 @@
 #include <mutex>
 #include <system_error>
 
+namespace {
+
+    int ref_count_ = 0;
+    std::mutex mutex_;
+
+}// namespace
 
 namespace simple_socket {
-
-    inline int ref_count_ = 0;
-    inline std::mutex mutex_;
 
     class WSASession {
     public:

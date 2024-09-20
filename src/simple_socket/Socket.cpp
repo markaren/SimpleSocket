@@ -7,6 +7,10 @@
 
 namespace simple_socket {
 
+#ifdef _WIN32
+    WSASession session;
+#endif
+
     SOCKET createSocket(int domain, int protocol) {
         SOCKET sockfd = socket(domain, SOCK_STREAM, protocol);
         if (sockfd == INVALID_SOCKET) {
@@ -157,10 +161,6 @@ namespace simple_socket {
             socket.close();
         }
 
-#ifdef _WIN32
-        WSASession session;
-#endif
-
         Socket socket;
     };
 
@@ -178,6 +178,7 @@ namespace simple_socket {
     }
 
     TCPServer::~TCPServer() = default;
+
 
     struct UnixDomainServer::Impl {
 
@@ -217,10 +218,6 @@ namespace simple_socket {
 
             socket.close();
         }
-
-#ifdef _WIN32
-        WSASession session_;
-#endif
 
         Socket socket;
     };

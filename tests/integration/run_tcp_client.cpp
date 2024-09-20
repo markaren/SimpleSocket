@@ -8,7 +8,7 @@ using namespace simple_socket;
 
 int main() {
 
-    if (auto client = TCPClient::connect("127.0.0.1", 8080)) {
+    if (const auto client = TCPClient::connect("127.0.0.1", 8080)) {
 
         std::string message = "Per";
         client->write(message);
