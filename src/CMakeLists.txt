@@ -1,7 +1,7 @@
 set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
-        "simple_socket/Pipe.hpp"
+
         "simple_socket/port_query.hpp"
         "simple_socket/Socket.hpp"
         "simple_socket/TCPSocket.hpp"
@@ -9,11 +9,6 @@ set(publicHeaders
         "simple_socket/UnixDomainSocket.hpp"
         "simple_socket/WebSocket.hpp"
 )
-
-set(publicHeadersFull)
-foreach (header IN LISTS publicHeaders)
-    list(APPEND publicHeadersFull "${publicHeaderDir}/${header}")
-endforeach ()
 
 set(privateHeaders
         "simple_socket/common.hpp"
@@ -27,6 +22,23 @@ set(sources
         "simple_socket/UDPSocket.cpp"
         "simple_socket/WebSocket.cpp"
 )
+
+if (WIN32)
+    list(APPEND publicHeaders
+            "simple_socket/Pipe.hpp"
+    )
+
+    list(APPEND sources
+            "simple_socket/Pipe.cpp"
+    )
+endif ()
+
+
+set(publicHeadersFull)
+foreach (header IN LISTS publicHeaders)
+    list(APPEND publicHeadersFull "${publicHeaderDir}/${header}")
+endforeach ()
+
 
 add_library(simple_socket "${publicHeadersFull}" "${privateHeaders}" "${sources}")
 target_compile_features(simple_socket PUBLIC "cxx_std_17")
