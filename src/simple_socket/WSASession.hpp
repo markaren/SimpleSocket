@@ -7,19 +7,16 @@
 #include <mutex>
 #include <system_error>
 
-namespace {
-
-    int ref_count_ = 0;
-    std::mutex mutex_;
-
-}// namespace
 
 namespace simple_socket {
+
+    inline int ref_count_ = 0;
+    inline std::mutex mutex_;
 
     class WSASession {
     public:
         WSASession() {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard lock(mutex_);
             if (ref_count_ == 0) {
                 WSADATA wsaData;
                 if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -30,14 +27,14 @@ namespace simple_socket {
         }
 
         ~WSASession() {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard lock(mutex_);
             if (--ref_count_ == 0) {
                 WSACleanup();
             }
         }
     };
 
-}
+}// namespace simple_socket
 
 
 #endif//SIMPLE_SOCKET_WSASESSION_HPP

@@ -45,7 +45,6 @@ namespace {
 TEST_CASE("UNIX Domain Socket read/write") {
 
     UnixDomainServer server(domain);
-    UnixDomainClient client;
 
     std::thread serverThread([&server] {
         std::unique_ptr<SocketConnection> conn;
@@ -55,16 +54,17 @@ TEST_CASE("UNIX Domain Socket read/write") {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::thread clientThread([&client] {
-        REQUIRE(client.connect(domain));
+    std::thread clientThread([] {
+        const auto conn = UnixDomainClient::connect(domain);
+        REQUIRE(conn);
 
         std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
 
-        client.write(message);
+        conn->write(message);
 
         std::vector<unsigned char> buffer(1024);
-        const auto bytesRead = client.read(buffer);
+        const auto bytesRead = conn->read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + bytesRead);
 
@@ -72,9 +72,6 @@ TEST_CASE("UNIX Domain Socket read/write") {
     });
 
     clientThread.join();
-    client.close();
-
-    REQUIRE(!server.write(""));
 
     server.close();
     serverThread.join();
@@ -84,7 +81,6 @@ TEST_CASE("UNIX Domain Socket read/write") {
 TEST_CASE("UNIX Domain Socket readexact/write") {
 
     UnixDomainServer server(domain);
-    UnixDomainClient client;
 
     std::thread serverThread([&server] {
         std::unique_ptr<SocketConnection> conn;
@@ -94,24 +90,22 @@ TEST_CASE("UNIX Domain Socket readexact/write") {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::thread clientThread([&client] {
-        REQUIRE(client.connect(domain));
+    std::thread clientThread([] {
+        const auto conn = UnixDomainClient::connect(domain);
+        REQUIRE(conn);
 
         std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
-        client.write(message);
+        conn->write(message);
 
         std::vector<unsigned char> buffer(expectedResponse.size());
-        REQUIRE(client.readExact(buffer));
+        REQUIRE(conn->readExact(buffer));
 
         std::string response(buffer.begin(), buffer.end());
         CHECK(response == expectedResponse);
     });
 
     clientThread.join();
-    client.close();
-
-    REQUIRE(!server.write(""));
 
     server.close();
     serverThread.join();

@@ -7,132 +7,46 @@
 
 namespace simple_socket {
 
-    struct Socket::Impl {
-
-        Impl(): sockfd_(INVALID_SOCKET) {}
-
-        void setupSocket(int domain, int protocol) {
-            sockfd_ = socket(domain, SOCK_STREAM, protocol);
-            if (sockfd_ == INVALID_SOCKET) {
-                throwSocketError("Failed to create socket");
-            }
-            if (domain == AF_INET) {
-                const int optval = 1;
-                setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
-            }
+    SOCKET createSocket(int domain, int protocol) {
+        SOCKET sockfd = socket(domain, SOCK_STREAM, protocol);
+        if (sockfd == INVALID_SOCKET) {
+            throwSocketError("Failed to create socket");
+        }
+        if (domain == AF_INET) {
+            const int optval = 1;
+            setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
         }
 
-        bool connect(const std::string& ip, int port) {
+        return sockfd;
+    }
 
-            setupSocket(AF_INET, IPPROTO_TCP);
+    struct Socket: SocketConnection {
 
-            sockaddr_in serv_addr{};
-            serv_addr.sin_family = AF_INET;
-            serv_addr.sin_port = htons(port);
-            if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
+        explicit Socket(SOCKET socket)
+            : sockfd_(socket) {}
 
-                return false;
-            }
+        int read(std::vector<unsigned char>& buffer) override {
 
-            return ::connect(sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0;
+            return read(buffer.data(), buffer.size());
         }
 
-        bool connect(const std::string& domain) {
-
-            setupSocket(AF_UNIX, 0);
-
-            sockaddr_un addr{};
-            addr.sun_family = AF_UNIX;
-            strncpy(addr.sun_path,  domain.c_str(), sizeof(addr.sun_path) - 1);
-
-            return ::connect(sockfd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) >= 0;
-        }
-
-        void bind(int port) {
-
-            setupSocket(AF_INET, IPPROTO_TCP);
-
-            sockaddr_in serv_addr{};
-            serv_addr.sin_family = AF_INET;
-            serv_addr.sin_addr.s_addr = INADDR_ANY;
-            serv_addr.sin_port = htons(port);
-
-            if (::bind(sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
-
-                throwSocketError("Bind failed");
-            }
-        }
-
-        void bind(const std::string& domain) {
-
-            setupSocket(AF_UNIX, 0);
-
-            unlinkPath(domain);
-
-            sockaddr_un addr{};
-            memset(&addr, 0, sizeof(addr));
-            addr.sun_family = AF_UNIX;
-            strncpy(addr.sun_path,  domain.c_str(), sizeof(addr.sun_path) - 1);
-
-            if (::bind(sockfd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-
-                throwSocketError("Bind failed");
-            }
-        }
-
-        void listen(int backlog) const {
-
-            if (::listen(sockfd_, backlog) < 0) {
-
-                throwSocketError("Listen failed");
-            }
-        }
-
-        [[nodiscard]] std::unique_ptr<SocketConnection> acceptTCP() const {
-
-            sockaddr_in client_addr{};
-            socklen_t addrlen = sizeof(client_addr);
-            SOCKET new_sock = ::accept(sockfd_, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
-
-            if (new_sock == INVALID_SOCKET) {
-
-                throwSocketError("Accept failed");
-            }
-
-            auto conn = std::make_unique<Socket>();
-            conn->pimpl_->assign(new_sock);
-
-            return conn;
-        }
-
-        [[nodiscard]] std::unique_ptr<SocketConnection> acceptUnix() const {
-
-            SOCKET new_sock = ::accept(sockfd_, nullptr, nullptr);
-
-            if (new_sock == INVALID_SOCKET) {
-
-                throwSocketError("Accept failed");
-            }
-
-            auto conn = std::make_unique<Socket>();
-            conn->pimpl_->assign(new_sock);
-
-            return conn;
-        }
-
-        bool read(unsigned char* buffer, size_t size, size_t* bytesRead) const {
+        int read(unsigned char* buffer, size_t size) override {
 
 #ifdef _WIN32
             const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
 #else
             const auto read = ::read(sockfd_, buffer, size);
 #endif
-            if (bytesRead) *bytesRead = read;
 
-            return (read != SOCKET_ERROR) && (read != 0);
+            return (read != SOCKET_ERROR) && (read != 0) ? read : -1;
         }
 
-        bool readExact(unsigned char* buffer, size_t size) const {
+        bool readExact(std::vector<unsigned char>& buffer) override {
+
+            return readExact(buffer.data(), buffer.size());
+        }
+
+        bool readExact(unsigned char* buffer, size_t size) override {
 
             size_t totalBytesReceived = 0;
             while (totalBytesReceived < size) {
@@ -152,14 +66,16 @@ namespace simple_socket {
             return totalBytesReceived == size;
         }
 
-        bool write(const std::string& buffer) const {
+        bool write(const std::string& buffer) override {
 
-            const auto size = static_cast<int>(buffer.size());
-
-            return send(sockfd_, buffer.data(), size, 0) != SOCKET_ERROR;
+#ifdef _WIN32
+            return send(sockfd_, buffer.data(), static_cast<int>(buffer.size()), 0) != SOCKET_ERROR;
+#else
+            return ::write(sockfd_, buffer.data(), buffer.size()) != SOCKET_ERROR;
+#endif
         }
 
-        bool write(const std::vector<unsigned char>& buffer) const {
+        bool write(const std::vector<unsigned char>& buffer) override {
 
 #ifdef _WIN32
             return send(sockfd_, reinterpret_cast<const char*>(buffer.data()), static_cast<int>(buffer.size()), 0) != SOCKET_ERROR;
@@ -168,110 +84,177 @@ namespace simple_socket {
 #endif
         }
 
-        void close() const {
+        void close() override {
 
             closeSocket(sockfd_);
         }
 
-        ~Impl() {
+        ~Socket() override {
 
-            close();
+            closeSocket(sockfd_);
         }
-
-    private:
-#ifdef _WIN32
-        WSASession session_;
-#endif
 
         SOCKET sockfd_;
-
-        void assign(SOCKET new_sock) {
-            close();
-
-            sockfd_ = new_sock;
-        }
     };
 
-    Socket::Socket(): pimpl_(std::make_unique<Impl>()) {}
+    std::unique_ptr<SocketConnection> TCPClient::connect(const std::string& ip, int port) {
 
-    int Socket::read(std::vector<unsigned char>& buffer) {
+        SOCKET sock = createSocket(AF_INET, IPPROTO_TCP);
 
-        size_t bytesRead = 0;
-        const auto success = pimpl_->read(buffer.data(), buffer.size(), &bytesRead);
+        sockaddr_in serv_addr{};
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(port);
+        if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
 
-        return success ? static_cast<int>(bytesRead) : -1;
+            return nullptr;
+        }
+
+        if (::connect(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0) {
+
+            return std::make_unique<Socket>(sock);
+        }
+
+        return nullptr;
     }
 
-    int Socket::read(unsigned char* buffer, size_t size) {
 
-        size_t bytesRead = 0;
-        const auto success = pimpl_->read(buffer, size, &bytesRead);
+    struct TCPServer::Impl {
 
-        return success ? static_cast<int>(bytesRead) : -1;
+        Impl(int port, int backlog)
+            : socket(createSocket(AF_INET, IPPROTO_TCP)) {
+
+            sockaddr_in serv_addr{};
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_addr.s_addr = INADDR_ANY;
+            serv_addr.sin_port = htons(port);
+
+            if (::bind(socket.sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
+
+                throwSocketError("Bind failed");
+            }
+
+            if (::listen(socket.sockfd_, backlog) < 0) {
+
+                throwSocketError("Listen failed");
+            }
+        }
+
+        std::unique_ptr<SocketConnection> accept() {
+            sockaddr_in client_addr{};
+            socklen_t addrlen = sizeof(client_addr);
+            SOCKET new_sock = ::accept(socket.sockfd_, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
+
+            if (new_sock == INVALID_SOCKET) {
+
+                throwSocketError("Accept failed");
+            }
+
+            return std::make_unique<Socket>(new_sock);
+        }
+
+        void close() {
+
+            socket.close();
+        }
+
+#ifdef _WIN32
+        WSASession session;
+#endif
+
+        Socket socket;
+    };
+
+    TCPServer::TCPServer(int port, int backlog)
+        : pimpl_(std::make_unique<Impl>(port, backlog)) {}
+
+    std::unique_ptr<SocketConnection> TCPServer::accept() {
+
+        return pimpl_->accept();
     }
 
-    bool Socket::readExact(std::vector<unsigned char>& buffer) {
-
-        return pimpl_->readExact(buffer.data(), buffer.size());
-    }
-
-    bool Socket::readExact(unsigned char* buffer, size_t size) {
-
-        return pimpl_->readExact(buffer, size);
-    }
-
-    bool Socket::write(const std::string& buffer) {
-
-        if (buffer.empty()) return false;
-
-        return pimpl_->write(buffer);
-    }
-
-    bool Socket::write(const std::vector<unsigned char>& buffer) {
-
-        return pimpl_->write(buffer);
-    }
-
-    void Socket::close() {
+    void TCPServer::close() {
 
         pimpl_->close();
     }
 
-    Socket::~Socket() = default;
+    TCPServer::~TCPServer() = default;
 
+    struct UnixDomainServer::Impl {
 
-    bool TCPClient::connect(const std::string& ip, int port) {
+        explicit Impl(const std::string& domain, int backlog)
+            : socket(createSocket(AF_UNIX, 0)) {
 
-        return pimpl_->connect(ip, port);
-    }
+            unlinkPath(domain);
 
+            sockaddr_un addr{};
+            memset(&addr, 0, sizeof(addr));
+            addr.sun_family = AF_UNIX;
+            strncpy(addr.sun_path, domain.c_str(), sizeof(addr.sun_path) - 1);
 
-    TCPServer::TCPServer(int port, int backlog) {
+            if (::bind(socket.sockfd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
 
-        pimpl_->bind(port);
-        pimpl_->listen(backlog);
-    }
+                throwSocketError("Bind failed");
+            }
 
-    std::unique_ptr<SocketConnection> TCPServer::accept() {
+            if (::listen(socket.sockfd_, backlog) < 0) {
 
-        return pimpl_->acceptTCP();
-    }
+                throwSocketError("Listen failed");
+            }
+        }
 
+        std::unique_ptr<Socket> accept() {
 
-    bool UnixDomainClient::connect(const std::string& domain) {
+            SOCKET new_sock = ::accept(socket.sockfd_, nullptr, nullptr);
+            if (new_sock == INVALID_SOCKET) {
 
-        return pimpl_->connect(domain);
+                throwSocketError("Accept failed");
+            }
+
+            return std::make_unique<Socket>(new_sock);
+        }
+
+        void close() {
+
+            socket.close();
+        }
+
+#ifdef _WIN32
+        WSASession session_;
+#endif
+
+        Socket socket;
+    };
+
+    UnixDomainServer::UnixDomainServer(const std::string& domain, int backlog)
+        : pimpl_(std::make_unique<Impl>(domain, backlog)) {}
+
+    void UnixDomainServer::close() {
+
+        pimpl_->close();
     }
 
     std::unique_ptr<SocketConnection> UnixDomainServer::accept() {
 
-        return pimpl_->acceptUnix();
+        return pimpl_->accept();
     }
 
-    UnixDomainServer::UnixDomainServer(const std::string& domain, int backlog) {
+    UnixDomainServer::~UnixDomainServer() = default;
 
-        pimpl_->bind(domain);
-        pimpl_->listen(backlog);
+
+    std::unique_ptr<SocketConnection> UnixDomainClient::connect(const std::string& domain) {
+
+        SOCKET sockfd = createSocket(AF_UNIX, 0);
+
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, domain.c_str(), sizeof(addr.sun_path) - 1);
+
+        if (::connect(sockfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) >= 0) {
+
+            return std::make_unique<Socket>(sockfd);
+        }
+
+        return nullptr;
     }
 
 }// namespace simple_socket
