@@ -6,6 +6,8 @@
 </head>
 <body>
 
+<p id="output"></p>
+
 <script>
     const ws = new WebSocket('ws://localhost:8081');
 
@@ -16,6 +18,7 @@
 
     ws.onmessage = function(e) {
         console.log('Received: ' + e.data);
+        document.getElementById("output").innerText = e.data;
     };
 
     ws.onclose = function() {
