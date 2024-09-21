@@ -6,9 +6,17 @@
 
 namespace simple_socket {
 
-    class TCPClient {
+    class TCPClientContext {
     public:
-        static std::unique_ptr<SocketConnection> connect(const std::string& ip, int port);
+        TCPClientContext();
+
+        std::unique_ptr<SocketConnection> connect(const std::string& ip, int port);
+
+        ~TCPClientContext();
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
     };
 
     class TCPServer {

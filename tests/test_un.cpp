@@ -55,7 +55,8 @@ TEST_CASE("UNIX Domain Socket read/write") {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::thread clientThread([] {
-        const auto conn = UnixDomainClient::connect(domain);
+        UnixDomainClientContext client;
+        const auto conn = client.connect(domain);
         REQUIRE(conn);
 
         std::string message = generateMessage();
@@ -91,7 +92,9 @@ TEST_CASE("UNIX Domain Socket readexact/write") {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::thread clientThread([] {
-        const auto conn = UnixDomainClient::connect(domain);
+
+        UnixDomainClientContext client;
+        const auto conn = client.connect(domain);
         REQUIRE(conn);
 
         std::string message = generateMessage();

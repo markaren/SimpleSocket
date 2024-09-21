@@ -8,9 +8,16 @@
 
 namespace simple_socket {
 
-    class UnixDomainClient {
+    class UnixDomainClientContext {
     public:
-        static std::unique_ptr<SocketConnection> connect(const std::string& domain);
+        UnixDomainClientContext();
+
+        std::unique_ptr<SocketConnection> connect(const std::string& domain);
+
+        ~UnixDomainClientContext();
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
     };
 
     class UnixDomainServer {

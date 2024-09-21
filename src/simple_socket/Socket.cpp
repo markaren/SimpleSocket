@@ -7,10 +7,6 @@
 
 namespace simple_socket {
 
-#ifdef _WIN32
-    WSASession session;
-#endif
-
     SOCKET createSocket(int domain, int protocol) {
         SOCKET sockfd = socket(domain, SOCK_STREAM, protocol);
         if (sockfd == INVALID_SOCKET) {
@@ -101,25 +97,12 @@ namespace simple_socket {
         SOCKET sockfd_;
     };
 
-    std::unique_ptr<SocketConnection> TCPClient::connect(const std::string& ip, int port) {
+    struct TCPClientContext::Impl {
 
-        SOCKET sock = createSocket(AF_INET, IPPROTO_TCP);
-
-        sockaddr_in serv_addr{};
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(port);
-        if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
-
-            return nullptr;
-        }
-
-        if (::connect(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0) {
-
-            return std::make_unique<Socket>(sock);
-        }
-
-        return nullptr;
-    }
+#ifdef _WIN32
+        WSASession session;
+#endif
+    };
 
 
     struct TCPServer::Impl {
@@ -161,6 +144,11 @@ namespace simple_socket {
             socket.close();
         }
 
+    private:
+#ifdef _WIN32
+        WSASession session;
+#endif
+
         Socket socket;
     };
 
@@ -178,6 +166,31 @@ namespace simple_socket {
     }
 
     TCPServer::~TCPServer() = default;
+
+    TCPClientContext::TCPClientContext()
+        : pimpl_(std::make_unique<Impl>()) {}
+
+    std::unique_ptr<SocketConnection> TCPClientContext::connect(const std::string& ip, int port) {
+
+        SOCKET sock = createSocket(AF_INET, IPPROTO_TCP);
+
+        sockaddr_in serv_addr{};
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(port);
+        if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
+
+            return nullptr;
+        }
+
+        if (::connect(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) >= 0) {
+
+            return std::make_unique<Socket>(sock);
+        }
+
+        return nullptr;
+    }
+
+    TCPClientContext::~TCPClientContext() = default;
 
 
     struct UnixDomainServer::Impl {
@@ -219,6 +232,11 @@ namespace simple_socket {
             socket.close();
         }
 
+    private:
+#ifdef _WIN32
+        WSASession session;
+#endif
+
         Socket socket;
     };
 
@@ -237,8 +255,18 @@ namespace simple_socket {
 
     UnixDomainServer::~UnixDomainServer() = default;
 
+    struct UnixDomainClientContext::Impl {
 
-    std::unique_ptr<SocketConnection> UnixDomainClient::connect(const std::string& domain) {
+#ifdef _WIN32
+        WSASession session;
+#endif
+    };
+
+    UnixDomainClientContext::UnixDomainClientContext()
+        : pimpl_(std::make_unique<Impl>()) {}
+
+
+    std::unique_ptr<SocketConnection> UnixDomainClientContext::connect(const std::string& domain) {
 
         SOCKET sockfd = createSocket(AF_UNIX, 0);
 
@@ -253,5 +281,7 @@ namespace simple_socket {
 
         return nullptr;
     }
+
+    UnixDomainClientContext::~UnixDomainClientContext() = default;
 
 }// namespace simple_socket

@@ -53,7 +53,8 @@ TEST_CASE("TCP read/write") {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::thread clientThread([port] {
-        const auto conn = TCPClient::connect("127.0.0.1", port);
+        TCPClientContext client;
+        const auto conn = client.connect("127.0.0.1", port);
         REQUIRE(conn);
 
         std::string message = generateMessage();
@@ -91,7 +92,8 @@ TEST_CASE("TCP readexact/write") {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::thread clientThread([port] {
-        const auto conn = TCPClient::connect("127.0.0.1", port);
+        TCPClientContext client;
+        const auto conn = client.connect("127.0.0.1", port);
         REQUIRE(conn);
 
         std::string message = generateMessage();

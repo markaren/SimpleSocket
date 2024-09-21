@@ -8,13 +8,14 @@ using namespace simple_socket;
 
 int main() {
 
-    if (const auto client = TCPClient::connect("127.0.0.1", 8080)) {
+    TCPClientContext client;
+    if (const auto conn = client.connect("127.0.0.1", 8080)) {
 
         std::string message = "Per";
-        client->write(message);
+        conn->write(message);
 
         std::vector<unsigned char> buffer(1024);
-        const auto bytesRead = client->read(buffer);
+        const auto bytesRead = conn->read(buffer);
 
         std::cout << "Response from server: " << std::string(buffer.begin(), buffer.begin() + static_cast<int>(bytesRead)) << std::endl;
     } else {
