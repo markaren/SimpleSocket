@@ -14,11 +14,16 @@ struct NamedPipe::Impl {
 
     HANDLE hPipe_{INVALID_HANDLE_VALUE};
 
-    ~Impl() {
+    void close() {
         if (hPipe_ != INVALID_HANDLE_VALUE) {
             CloseHandle(hPipe_);
             hPipe_ = INVALID_HANDLE_VALUE;
         }
+    }
+
+    ~Impl() {
+
+        close();
     }
 
     static std::unique_ptr<NamedPipe> createPipe(HANDLE hPipe) {
@@ -33,35 +38,6 @@ NamedPipe::NamedPipe(PassKey)
 
 NamedPipe::NamedPipe(NamedPipe&& other) noexcept: pimpl_(std::make_unique<Impl>()) {
     other.pimpl_->hPipe_ = INVALID_HANDLE_VALUE;
-}
-
-bool NamedPipe::send(const std::string& message) {
-    DWORD bytesWritten;
-    if (!WriteFile(pimpl_->hPipe_, message.c_str(), message.size(), &bytesWritten, nullptr)) {
-        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
-        return false;
-    }
-    return true;
-}
-
-bool NamedPipe::send(const std::vector<unsigned char>& data) {
-    DWORD bytesWritten;
-    if (!WriteFile(pimpl_->hPipe_, data.data(), data.size(), &bytesWritten, nullptr)) {
-        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
-        return false;
-    }
-    return true;
-}
-
-int NamedPipe::receive(std::vector<unsigned char>& buffer) {
-
-    DWORD bytesRead;
-    if (!ReadFile(pimpl_->hPipe_, buffer.data(), buffer.size() - 1, &bytesRead, nullptr)) {
-        std::cerr << "Failed to read from pipe. Error: " << GetLastError() << std::endl;
-        return -1;
-    }
-    buffer[bytesRead] = '\0';
-    return static_cast<int>(bytesRead);
 }
 
 std::unique_ptr<NamedPipe> NamedPipe::listen(const std::string& name) {
@@ -127,6 +103,56 @@ std::unique_ptr<NamedPipe> NamedPipe::connect(const std::string& name, long time
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
+}
+
+int NamedPipe::read(std::vector<unsigned char>& buffer) {
+    DWORD bytesRead;
+    if (!ReadFile(pimpl_->hPipe_, buffer.data(), buffer.size() - 1, &bytesRead, nullptr)) {
+        std::cerr << "Failed to read from pipe. Error: " << GetLastError() << std::endl;
+        return -1;
+    }
+    buffer[bytesRead] = '\0';
+    return static_cast<int>(bytesRead);
+}
+
+int NamedPipe::read(unsigned char* buffer, size_t size) {
+    DWORD bytesRead;
+    if (!ReadFile(pimpl_->hPipe_, buffer, size - 1, &bytesRead, nullptr)) {
+        std::cerr << "Failed to read from pipe. Error: " << GetLastError() << std::endl;
+        return -1;
+    }
+    buffer[bytesRead] = '\0';
+    return static_cast<int>(bytesRead);
+}
+
+bool NamedPipe::readExact(std::vector<unsigned char>& buffer) {
+    throw std::runtime_error("Unsupported operation");
+}
+
+bool NamedPipe::readExact(unsigned char* buffer, size_t size) {
+    throw std::runtime_error("Unsupported operation");
+}
+
+bool NamedPipe::write(const std::string& message) {
+    DWORD bytesWritten;
+    if (!WriteFile(pimpl_->hPipe_, message.c_str(), message.size(), &bytesWritten, nullptr)) {
+        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool NamedPipe::write(const std::vector<unsigned char>& data) {
+    DWORD bytesWritten;
+    if (!WriteFile(pimpl_->hPipe_, data.data(), data.size(), &bytesWritten, nullptr)) {
+        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void NamedPipe::close() {
+    pimpl_->close();
 }
 
 NamedPipe::~NamedPipe() = default;

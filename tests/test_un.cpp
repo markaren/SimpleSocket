@@ -26,7 +26,7 @@ namespace {
         return "Hello " + msg + "!";
     }
 
-    void socketHandler(std::unique_ptr<SocketConnection> conn) {
+    void socketHandler(std::unique_ptr<SimpleConnection> conn) {
 
         std::vector<unsigned char> buffer(1024);
         const auto bytesRead = conn->read(buffer);
@@ -47,7 +47,7 @@ TEST_CASE("UNIX Domain Socket read/write") {
     UnixDomainServer server(domain);
 
     std::thread serverThread([&server] {
-        std::unique_ptr<SocketConnection> conn;
+        std::unique_ptr<SimpleConnection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
     });
@@ -84,7 +84,7 @@ TEST_CASE("UNIX Domain Socket readexact/write") {
     UnixDomainServer server(domain);
 
     std::thread serverThread([&server] {
-        std::unique_ptr<SocketConnection> conn;
+        std::unique_ptr<SimpleConnection> conn;
         REQUIRE_NOTHROW(conn = server.accept());
         socketHandler(std::move(conn));
     });

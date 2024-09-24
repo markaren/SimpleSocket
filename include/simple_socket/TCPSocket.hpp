@@ -2,7 +2,9 @@
 #ifndef SIMPLE_SOCKET_TCPSOCKET_HPP
 #define SIMPLE_SOCKET_TCPSOCKET_HPP
 
-#include "simple_socket/Socket.hpp"
+#include "simple_socket/SimpleConnection.hpp"
+
+#include <memory>
 
 namespace simple_socket {
 
@@ -10,7 +12,7 @@ namespace simple_socket {
     public:
         TCPClientContext();
 
-        std::unique_ptr<SocketConnection> connect(const std::string& ip, int port);
+        std::unique_ptr<SimpleConnection> connect(const std::string& ip, int port);
 
         ~TCPClientContext();
 
@@ -23,7 +25,7 @@ namespace simple_socket {
     public:
         explicit TCPServer(int port, int backlog = 1);
 
-        std::unique_ptr<SocketConnection> accept();
+        std::unique_ptr<SimpleConnection> accept();
 
         void close();
 

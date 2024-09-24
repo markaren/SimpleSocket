@@ -7,7 +7,7 @@
 
 using namespace simple_socket;
 
-void socketHandler(std::unique_ptr<SocketConnection> conn) {
+void socketHandler(std::unique_ptr<SimpleConnection> conn) {
 
     std::vector<unsigned char> buffer(1024);
     const auto n = conn->read(buffer);
@@ -24,7 +24,7 @@ int main() {
     std::atomic_bool stop = false;
     std::thread t([&] {
         while (!stop) {
-            std::unique_ptr<SocketConnection> conn;
+            std::unique_ptr<SimpleConnection> conn;
             try {
                 conn = server.accept();
             } catch (const std::exception&) {

@@ -4,11 +4,10 @@
 
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace simple_socket {
 
-    class SocketConnection {
+    class SimpleConnection {
     public:
         virtual int read(std::vector<unsigned char>& buffer) = 0;
 
@@ -24,7 +23,7 @@ namespace simple_socket {
 
         virtual void close() = 0;
 
-        virtual ~SocketConnection() = default;
+        virtual ~SimpleConnection() = default;
     };
 
 }// namespace simple_socket

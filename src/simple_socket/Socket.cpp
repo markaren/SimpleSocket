@@ -1,5 +1,5 @@
 
-#include "simple_socket/Socket.hpp"
+#include "simple_socket/SimpleConnection.hpp"
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/UnixDomainSocket.hpp"
 
@@ -20,7 +20,7 @@ namespace simple_socket {
         return sockfd;
     }
 
-    struct Socket: SocketConnection {
+    struct Socket: SimpleConnection {
 
         explicit Socket(SOCKET socket)
             : sockfd_(socket) {}
@@ -126,7 +126,7 @@ namespace simple_socket {
             }
         }
 
-        std::unique_ptr<SocketConnection> accept() {
+        std::unique_ptr<SimpleConnection> accept() {
             sockaddr_in client_addr{};
             socklen_t addrlen = sizeof(client_addr);
             SOCKET new_sock = ::accept(socket.sockfd_, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
@@ -155,7 +155,7 @@ namespace simple_socket {
     TCPServer::TCPServer(int port, int backlog)
         : pimpl_(std::make_unique<Impl>(port, backlog)) {}
 
-    std::unique_ptr<SocketConnection> TCPServer::accept() {
+    std::unique_ptr<SimpleConnection> TCPServer::accept() {
 
         return pimpl_->accept();
     }
@@ -170,7 +170,7 @@ namespace simple_socket {
     TCPClientContext::TCPClientContext()
         : pimpl_(std::make_unique<Impl>()) {}
 
-    std::unique_ptr<SocketConnection> TCPClientContext::connect(const std::string& ip, int port) {
+    std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& ip, int port) {
 
         SOCKET sock = createSocket(AF_INET, IPPROTO_TCP);
 
@@ -248,7 +248,7 @@ namespace simple_socket {
         pimpl_->close();
     }
 
-    std::unique_ptr<SocketConnection> UnixDomainServer::accept() {
+    std::unique_ptr<SimpleConnection> UnixDomainServer::accept() {
 
         return pimpl_->accept();
     }
@@ -266,7 +266,7 @@ namespace simple_socket {
         : pimpl_(std::make_unique<Impl>()) {}
 
 
-    std::unique_ptr<SocketConnection> UnixDomainClientContext::connect(const std::string& domain) {
+    std::unique_ptr<SimpleConnection> UnixDomainClientContext::connect(const std::string& domain) {
 
         SOCKET sockfd = createSocket(AF_UNIX, 0);
 

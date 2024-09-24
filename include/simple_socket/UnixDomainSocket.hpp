@@ -2,7 +2,7 @@
 #ifndef SIMPLE_SOCKET_UNIXDOMAINSOCKET_HPP
 #define SIMPLE_SOCKET_UNIXDOMAINSOCKET_HPP
 
-#include "simple_socket/Socket.hpp"
+#include "simple_socket/SimpleConnection.hpp"
 
 #include <memory>
 
@@ -12,7 +12,7 @@ namespace simple_socket {
     public:
         UnixDomainClientContext();
 
-        std::unique_ptr<SocketConnection> connect(const std::string& domain);
+        std::unique_ptr<SimpleConnection> connect(const std::string& domain);
 
         ~UnixDomainClientContext();
     private:
@@ -24,7 +24,7 @@ namespace simple_socket {
     public:
         explicit UnixDomainServer(const std::string& domain, int backlog = 1);
 
-        std::unique_ptr<SocketConnection> accept();
+        std::unique_ptr<SimpleConnection> accept();
 
         void close();
 

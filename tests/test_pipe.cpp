@@ -31,7 +31,7 @@ TEST_CASE("NamedPipe read/write") {
         REQUIRE(conn);
 
         std::vector<unsigned char> buffer(1024);
-        const auto bytesRead = conn->receive(buffer);
+        const auto bytesRead = conn->read(buffer);
 
         std::string expectedMessage = generateMessage();
         REQUIRE(bytesRead == expectedMessage.size());
@@ -39,7 +39,7 @@ TEST_CASE("NamedPipe read/write") {
         std::string msg(buffer.begin(), buffer.begin() + bytesRead);
         REQUIRE(msg == expectedMessage);
 
-        REQUIRE(conn->send(generateResponse(msg)));
+        REQUIRE(conn->write(generateResponse(msg)));
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -51,10 +51,10 @@ TEST_CASE("NamedPipe read/write") {
         std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
 
-        conn->send(message);
+        conn->write(message);
 
         std::vector<unsigned char> buffer(1024);
-        const auto bytesRead = conn->receive(buffer);
+        const auto bytesRead = conn->read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + bytesRead);
 

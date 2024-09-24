@@ -15,7 +15,7 @@ int main() {
     std::vector<unsigned char> buffer(512);
     // Ping-Pong logic
     while (true) {
-        const auto len = conn->receive(buffer);
+        const auto len = conn->write(buffer);
         std::string received{buffer.begin(), buffer.begin() + len};
         std::cout << "Client: " << received << std::endl;
 
@@ -23,7 +23,7 @@ int main() {
             break;
 
         std::string response = "Pong: " + received;
-        conn->send(response);
+        conn->write(response);
     }
 
     std::cout << "Server shutting down..." << std::endl;
