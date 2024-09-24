@@ -21,3 +21,5 @@ if (UNIX)
     target_link_libraries(run_tcp_client PRIVATE pthread)
     target_link_libraries(run_ws PRIVATE pthread)
 endif ()
+
+file(COPY ws_client.html DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

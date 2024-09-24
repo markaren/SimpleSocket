@@ -19,6 +19,8 @@ int main() {
         c->send("Hello from server");
     };
 
+    system("start ws_client.html");
+
     //wait for key press
     std::cout << "Press any key to stop server.." << std::endl;
     std::cin.get();
