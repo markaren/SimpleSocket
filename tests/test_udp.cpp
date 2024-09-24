@@ -2,7 +2,6 @@
 #include "simple_socket/UDPSocket.hpp"
 #include "simple_socket/port_query.hpp"
 
-#include <WinSock2.h>
 #include <catch2/catch_test_macros.hpp>
 
 using namespace simple_socket;
