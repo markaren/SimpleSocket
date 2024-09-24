@@ -25,11 +25,6 @@ namespace simple_socket {
         explicit Socket(SOCKET socket)
             : sockfd_(socket) {}
 
-        int read(std::vector<unsigned char>& buffer) override {
-
-            return read(buffer.data(), buffer.size());
-        }
-
         int read(unsigned char* buffer, size_t size) override {
 
 #ifdef _WIN32
@@ -39,11 +34,6 @@ namespace simple_socket {
 #endif
 
             return (read != SOCKET_ERROR) && (read != 0) ? read : -1;
-        }
-
-        bool readExact(std::vector<unsigned char>& buffer) override {
-
-            return readExact(buffer.data(), buffer.size());
         }
 
         bool readExact(unsigned char* buffer, size_t size) override {
@@ -66,21 +56,12 @@ namespace simple_socket {
             return totalBytesReceived == size;
         }
 
-        bool write(const std::string& buffer) override {
+        bool write(const unsigned char* data, size_t size) override {
 
 #ifdef _WIN32
-            return send(sockfd_, buffer.data(), static_cast<int>(buffer.size()), 0) != SOCKET_ERROR;
+            return send(sockfd_, reinterpret_cast<const char*>(data), static_cast<int>(size), 0) != SOCKET_ERROR;
 #else
-            return ::write(sockfd_, buffer.data(), buffer.size()) != SOCKET_ERROR;
-#endif
-        }
-
-        bool write(const std::vector<unsigned char>& buffer) override {
-
-#ifdef _WIN32
-            return send(sockfd_, reinterpret_cast<const char*>(buffer.data()), static_cast<int>(buffer.size()), 0) != SOCKET_ERROR;
-#else
-            return ::write(sockfd_, buffer.data(), buffer.size()) != SOCKET_ERROR;
+            return ::write(sockfd_, data, size) != SOCKET_ERROR;
 #endif
         }
 

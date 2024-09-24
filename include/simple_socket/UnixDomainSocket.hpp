@@ -5,6 +5,7 @@
 #include "simple_socket/SimpleConnection.hpp"
 
 #include <memory>
+#include <string>
 
 namespace simple_socket {
 
@@ -15,6 +16,7 @@ namespace simple_socket {
         std::unique_ptr<SimpleConnection> connect(const std::string& domain);
 
         ~UnixDomainClientContext();
+
     private:
         struct Impl;
         std::unique_ptr<Impl> pimpl_;

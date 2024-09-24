@@ -1,6 +1,7 @@
 
 #include "simple_socket/Pipe.hpp"
 
+#include <array>
 #include <iostream>
 
 using namespace simple_socket;
@@ -21,7 +22,7 @@ int main() {
         if (input == "exit")
             break;
 
-        std::vector<unsigned char> buffer(512);
+        std::array<unsigned char, 512> buffer{};
         const auto bytesRecevied = conn->read(buffer);
         std::string received{buffer.begin(), buffer.begin() + bytesRecevied};
         std::cout << "Server: " << received << std::endl;

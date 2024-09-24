@@ -5,6 +5,7 @@
 #include "simple_socket/SimpleConnection.hpp"
 
 #include <memory>
+#include <string>
 
 namespace simple_socket {
 

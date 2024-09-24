@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <vector>
+#include <array>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -27,10 +28,10 @@ namespace {
 TEST_CASE("NamedPipe read/write") {
 
     std::thread serverThread([] {
-        std::unique_ptr<NamedPipe> conn = NamedPipe::listen(domain);
+        const auto conn = NamedPipe::listen(domain);
         REQUIRE(conn);
 
-        std::vector<unsigned char> buffer(1024);
+        std::array<unsigned char, 1024> buffer{};
         const auto bytesRead = conn->read(buffer);
 
         std::string expectedMessage = generateMessage();
@@ -53,7 +54,7 @@ TEST_CASE("NamedPipe read/write") {
 
         conn->write(message);
 
-        std::vector<unsigned char> buffer(1024);
+        std::array<unsigned char, 1024> buffer{};
         const auto bytesRead = conn->read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + bytesRead);

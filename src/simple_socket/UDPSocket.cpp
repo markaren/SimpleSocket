@@ -177,26 +177,20 @@ namespace simple_socket {
             explicit UDPConnection(UDPSocket* sock, std::string address, uint16_t port)
             : socket(sock), address(std::move(address)), port(port)  {}
 
-            int read(std::vector<unsigned char>& buffer) override {
-                return socket->recvFrom(address, port, buffer);
-            }
             int read(unsigned char* buffer, size_t size) override {
                 return socket->recvFrom(address, port, buffer, size);
             }
-            bool readExact(std::vector<unsigned char>& buffer) override {
-                throw std::runtime_error("Not supported");
-            }
+
             bool readExact(unsigned char* buffer, size_t size) override {
                 throw std::runtime_error("Not supported");
             }
-            bool write(const std::string& message) override {
-                return socket->sendTo(address, port, message);
-            }
-            bool write(const std::vector<unsigned char>& data) override {
-                return socket->sendTo(address, port, data);
-            }
-            void close() override {
 
+            bool write(const unsigned char* data, size_t size) override {
+                return socket->sendTo(address, port, data, size);
+            }
+
+            void close() override {
+                // do nothing
             }
         };
 

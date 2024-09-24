@@ -3,13 +3,13 @@
 #include <atomic>
 #include <iostream>
 #include <thread>
-#include <vector>
+#include <array>
 
 using namespace simple_socket;
 
 void socketHandler(std::unique_ptr<SimpleConnection> conn) {
 
-    std::vector<unsigned char> buffer(1024);
+    std::array<unsigned char, 1024> buffer{};
     const auto n = conn->read(buffer);
 
     std::string msg{buffer.begin(), buffer.begin() + n};

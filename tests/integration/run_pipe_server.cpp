@@ -2,6 +2,7 @@
 #include "simple_socket/Pipe.hpp"
 
 #include <iostream>
+#include <array>
 
 using namespace simple_socket;
 
@@ -12,7 +13,7 @@ int main() {
 
     if (!conn) return 1;
 
-    std::vector<unsigned char> buffer(512);
+    std::array<unsigned char, 512> buffer{};
     // Ping-Pong logic
     while (true) {
         const auto len = conn->write(buffer);
