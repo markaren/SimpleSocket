@@ -2,6 +2,8 @@
 #ifndef SIMPLE_SOCKET_SOCKET_HPP
 #define SIMPLE_SOCKET_SOCKET_HPP
 
+#include <cstddef>
+
 namespace simple_socket {
 
     class SimpleConnection {
