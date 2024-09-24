@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+using namespace simple_socket;
+
 int main() {
 
     const auto conn = NamedPipe::connect("PingPongPipe", 500);

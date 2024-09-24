@@ -8,6 +8,7 @@
 #include <vector>
 #include <windows.h>
 
+using namespace simple_socket;
 
 struct NamedPipe::Impl {
 
@@ -43,6 +44,15 @@ bool NamedPipe::send(const std::string& message) {
     return true;
 }
 
+bool NamedPipe::send(const std::vector<unsigned char>& data) {
+    DWORD bytesWritten;
+    if (!WriteFile(pimpl_->hPipe_, data.data(), data.size(), &bytesWritten, nullptr)) {
+        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
 int NamedPipe::receive(std::vector<unsigned char>& buffer) {
 
     DWORD bytesRead;
@@ -64,7 +74,7 @@ std::unique_ptr<NamedPipe> NamedPipe::listen(const std::string& name) {
             512,                                                  // Output buffer size
             512,                                                  // Input buffer size
             0,                                                    // Client time-out
-            nullptr);                                             // Default security attribute
+            nullptr);                             // Default security attribute
 
     if (hPipe == INVALID_HANDLE_VALUE) {
         std::cerr << "Failed to create pipe. Error: " << GetLastError() << std::endl;

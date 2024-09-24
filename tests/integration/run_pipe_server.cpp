@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+using namespace simple_socket;
+
 int main() {
 
     std::cout << "Waiting for client connection..." << std::endl;

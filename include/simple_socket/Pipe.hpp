@@ -6,34 +6,39 @@
 #include <string>
 #include <vector>
 
-class NamedPipe {
+namespace simple_socket {
 
-    struct PassKey {
-        friend class NamedPipe;
+    class NamedPipe {
+
+        struct PassKey {
+            friend class NamedPipe;
+        };
+
+    public:
+        explicit NamedPipe(PassKey passKey);
+
+        NamedPipe(NamedPipe&& other) noexcept;
+
+        NamedPipe(NamedPipe& other) = delete;
+        NamedPipe& operator=(NamedPipe& other) = delete;
+
+        bool send(const std::string& message);
+
+        bool send(const std::vector<unsigned char>& data);
+
+        int receive(std::vector<unsigned char>& buffer);
+
+        static std::unique_ptr<NamedPipe> listen(const std::string& name);
+
+        static std::unique_ptr<NamedPipe> connect(const std::string& name, long timeOut = 5000);
+
+        ~NamedPipe();
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pimpl_;
     };
 
-public:
-    explicit NamedPipe(PassKey passKey);
-
-    NamedPipe(NamedPipe&& other) noexcept;
-
-    NamedPipe(NamedPipe& other) = delete;
-    NamedPipe& operator=(NamedPipe& other) = delete;
-
-    bool send(const std::string& message);
-
-    int receive(std::vector<unsigned char>& buffer);
-
-    static std::unique_ptr<NamedPipe> listen(const std::string& name);
-
-    static std::unique_ptr<NamedPipe> connect(const std::string& name, long timeOut = 5000);
-
-    ~NamedPipe();
-
-private:
-
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
-};
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_PIPE_HPP
