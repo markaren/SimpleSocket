@@ -1,6 +1,6 @@
 
-#ifndef BYTE_CONVERSION_HPP
-#define BYTE_CONVERSION_HPP
+#ifndef SIMPLE_SOCKET_BYTE_CONVERSION_HPP
+#define SIMPLE_SOCKET_BYTE_CONVERSION_HPP
 
 #include <array>
 
@@ -45,4 +45,4 @@ namespace simple_socket {
 
 }
 
-#endif//BYTE_CONVERSION_HPP
+#endif//SIMPLE_SOCKET_BYTE_CONVERSION_HPP
