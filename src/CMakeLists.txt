@@ -2,6 +2,7 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
 
+        "simple_socket/byte_conversion.hpp"
         "simple_socket/port_query.hpp"
         "simple_socket/SimpleConnection.hpp"
         "simple_socket/TCPSocket.hpp"
