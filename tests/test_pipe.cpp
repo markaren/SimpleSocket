@@ -2,7 +2,6 @@
 #include "simple_socket/Pipe.hpp"
 
 #include <thread>
-#include <vector>
 #include <array>
 
 #include <catch2/catch_test_macros.hpp>
