@@ -10,35 +10,50 @@
 
 using namespace simple_socket;
 
-struct NamedPipe::Impl {
+struct PipeConnection: SimpleConnection {
 
-    HANDLE hPipe_{INVALID_HANDLE_VALUE};
+    explicit PipeConnection(HANDLE hPipe)
+        : hPipe_(hPipe) {}
 
-    void close() {
+    int read(unsigned char* buffer, size_t size) override {
+        DWORD bytesRead;
+        if (!ReadFile(hPipe_, buffer, size - 1, &bytesRead, nullptr)) {
+            std::cerr << "Failed to read from pipe. Error: " << GetLastError() << std::endl;
+            return -1;
+        }
+        buffer[bytesRead] = '\0';
+        return static_cast<int>(bytesRead);
+    }
+
+    bool readExact(unsigned char* buffer, size_t size) override {
+        throw std::runtime_error("PipeConnection::readExact: Unsupported operation");
+    }
+
+    bool write(const unsigned char* data, size_t size) override {
+        DWORD bytesWritten;
+        if (!WriteFile(hPipe_, data, size, &bytesWritten, nullptr)) {
+            std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    void close() override {
         if (hPipe_ != INVALID_HANDLE_VALUE) {
             CloseHandle(hPipe_);
             hPipe_ = INVALID_HANDLE_VALUE;
         }
     }
 
-    ~Impl() {
+    ~PipeConnection() override {
 
-        close();
+        PipeConnection::close();
     }
 
-    static std::unique_ptr<NamedPipe> createPipe(HANDLE hPipe) {
-        auto pipe = std::make_unique<NamedPipe>(PassKey());
-        pipe->pimpl_->hPipe_ = hPipe;
-        return pipe;
-    }
+private:
+    HANDLE hPipe_;
 };
 
-NamedPipe::NamedPipe(PassKey)
-    : pimpl_(std::make_unique<Impl>()) {}
-
-NamedPipe::NamedPipe(NamedPipe&& other) noexcept: pimpl_(std::make_unique<Impl>()) {
-    other.pimpl_->hPipe_ = INVALID_HANDLE_VALUE;
-}
 
 std::unique_ptr<SimpleConnection> NamedPipe::listen(const std::string& name) {
     const auto pipeName = R"(\\.\pipe\)" + name;
@@ -62,7 +77,7 @@ std::unique_ptr<SimpleConnection> NamedPipe::listen(const std::string& name) {
         return nullptr;
     }
 
-    return Impl::createPipe(hPipe);
+    return std::make_unique<PipeConnection>(hPipe);
 }
 
 std::unique_ptr<SimpleConnection> NamedPipe::connect(const std::string& name, long timeOut) {
@@ -80,7 +95,7 @@ std::unique_ptr<SimpleConnection> NamedPipe::connect(const std::string& name, lo
                 nullptr);                    // No template file
 
         if (hPipe != INVALID_HANDLE_VALUE) {
-            return Impl::createPipe(hPipe);
+            return std::make_unique<PipeConnection>(hPipe);
         }
 
         if (GetLastError() != ERROR_PIPE_BUSY) {
@@ -104,32 +119,3 @@ std::unique_ptr<SimpleConnection> NamedPipe::connect(const std::string& name, lo
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
-
-int NamedPipe::read(unsigned char* buffer, size_t size) {
-    DWORD bytesRead;
-    if (!ReadFile(pimpl_->hPipe_, buffer, size - 1, &bytesRead, nullptr)) {
-        std::cerr << "Failed to read from pipe. Error: " << GetLastError() << std::endl;
-        return -1;
-    }
-    buffer[bytesRead] = '\0';
-    return static_cast<int>(bytesRead);
-}
-
-bool NamedPipe::readExact(unsigned char* buffer, size_t size) {
-    throw std::runtime_error("Unsupported operation");
-}
-
-bool NamedPipe::write(const unsigned char* data, size_t size) {
-    DWORD bytesWritten;
-    if (!WriteFile(pimpl_->hPipe_, data, size, &bytesWritten, nullptr)) {
-        std::cerr << "Failed to write to pipe. Error: " << GetLastError() << std::endl;
-        return false;
-    }
-    return true;
-}
-
-void NamedPipe::close() {
-    pimpl_->close();
-}
-
-NamedPipe::~NamedPipe() = default;

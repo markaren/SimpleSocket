@@ -1,8 +1,8 @@
 
 #include "simple_socket/Pipe.hpp"
 
-#include <thread>
 #include <array>
+#include <thread>
 
 #include <catch2/catch_test_macros.hpp>
 
