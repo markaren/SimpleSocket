@@ -6,14 +6,23 @@
 </head>
 <body>
 
-<p id="output"></p>
+<div class="slidecontainer">
+    <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+    <p id="output"></p>
+</div>
 
 <script>
     const ws = new WebSocket('ws://localhost:8081');
 
+    const slider = document.getElementById("myRange");
+
+    slider.oninput = function() {
+        console.log(this.value);
+        ws.send(this.value);
+    }
+
     ws.onopen = function() {
         console.log('Connected');
-        ws.send('Hello Server!');
     };
 
     ws.onmessage = function(e) {
