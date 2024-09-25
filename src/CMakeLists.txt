@@ -13,6 +13,7 @@ set(publicHeaders
 
 set(privateHeaders
         "simple_socket/common.hpp"
+        "simple_socket/uuid.hpp"
 )
 
 set(sources

@@ -3,6 +3,7 @@
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/WebSocketHandshake.hpp"
 #include "simple_socket/common.hpp"
+#include "simple_socket/uuid.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -242,6 +243,13 @@ struct WebSocket::Impl {
     std::thread thread;
 };
 
+
+WebSocketConnection::WebSocketConnection()
+    : uuid_(generateUUID()) {}
+
+const std::string& WebSocketConnection::uuid() {
+    return uuid_;
+}
 
 WebSocket::WebSocket(uint16_t port)
     : pimpl_(std::make_unique<Impl>(this, port)) {}

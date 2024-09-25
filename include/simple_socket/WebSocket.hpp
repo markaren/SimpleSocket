@@ -11,9 +11,16 @@ namespace simple_socket {
     class WebSocketConnection {
 
     public:
+        WebSocketConnection();
+
+        const std::string& uuid();
+
         virtual void send(const std::string& msg) = 0;
 
         virtual ~WebSocketConnection() = default;
+
+    private:
+        std::string uuid_;
     };
 
     class WebSocket {
