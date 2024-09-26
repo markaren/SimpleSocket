@@ -3,6 +3,7 @@
 #define SIMPLE_SOCKET_BYTE_CONVERSION_HPP
 
 #include <array>
+#include <stdexcept>
 
 namespace simple_socket {
 
@@ -43,6 +44,26 @@ namespace simple_socket {
                                 buffer[3]);
     }
 
-}
+    // Decode 32-bit unsigned integer (4 bytes)
+    inline uint32_t decode_uint32(const std::vector<uint16_t>& data, size_t index = 0) {
+        if (index + 1 >= data.size()) {
+            throw std::out_of_range("Invalid index for uint32_t decoding.");
+        }
+        return (static_cast<uint32_t>(data[index]) << 16) |
+               static_cast<uint32_t>(data[index + 1]);
+    }
+
+    // Decode IEEE 754 32-bit float (4 bytes)
+    inline float decode_float(const std::vector<uint16_t>& data, size_t index = 0) {
+        if (index + 1 >= data.size()) {
+            throw std::out_of_range("Invalid index for float decoding.");
+        }
+        uint32_t raw_value = decode_uint32(data, index);
+        float decoded_value;
+        std::memcpy(&decoded_value, &raw_value, sizeof(decoded_value));// Reinterpret the bits as float
+        return decoded_value;
+    }
+
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_BYTE_CONVERSION_HPP

@@ -3,6 +3,7 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 set(publicHeaders
 
         "simple_socket/byte_conversion.hpp"
+        "simple_socket/ModbusClient.hpp"
         "simple_socket/port_query.hpp"
         "simple_socket/SimpleConnection.hpp"
         "simple_socket/TCPSocket.hpp"
@@ -18,6 +19,7 @@ set(privateHeaders
 
 set(sources
         "simple_socket/port_query.cpp"
+        "simple_socket/ModusClient.cpp"
         "simple_socket/Socket.cpp"
         "simple_socket/UDPSocket.cpp"
         "simple_socket/WebSocket.cpp"
