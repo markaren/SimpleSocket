@@ -50,7 +50,7 @@ endforeach ()
 
 
 add_library(simple_socket "${publicHeadersFull}" "${privateHeaders}" "${sources}")
-target_compile_features(simple_socket PUBLIC "cxx_std_17")
+target_compile_features(simple_socket PUBLIC "cxx_std_20")
 
 if (WIN32)
     target_link_libraries(simple_socket "ws2_32")

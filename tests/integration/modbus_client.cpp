@@ -13,11 +13,19 @@ int main() {
     {
         const auto result = client.read_holding_registers(3, 1);
         std::cout << result.front() << std::endl;
+        std::cout << client.read_uint16(3) << std::endl;
+    }
+
+    {
+        const auto result = client.read_holding_registers(4, 2);
+        std::cout << decode_uint32(result) << std::endl;
+        std::cout << client.read_uint32(4) << std::endl;
     }
 
     {
         const auto result = client.read_holding_registers(6, 2);
         std::cout << decode_float(result) << std::endl;
+        std::cout << client.read_float(6) << std::endl;
     }
 
     {

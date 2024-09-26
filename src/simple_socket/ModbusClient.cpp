@@ -2,6 +2,7 @@
 #include "simple_socket/modbus/ModbusClient.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
+#include "simple_socket/modbus/modbus_helper.hpp"
 
 #include <stdexcept>
 
@@ -33,7 +34,7 @@ namespace {
     // Parse the response for reading registers
     std::vector<uint16_t> parse_registers_response(const std::vector<uint8_t>& response, uint16_t count) {
         // Check if response has the minimum size: 9 bytes for the header + data bytes
-        if (response.size() < 9 + count * 2) {
+        if (response.size() < 9 + count * 2) { // TODO: verify
             throw std::runtime_error("Invalid response size or insufficient data");
         }
 
@@ -96,7 +97,7 @@ struct ModbusClient::Impl {
     }
 
     std::vector<uint8_t> receive_response(uint16_t count) {
-        std::vector<uint8_t> buffer(256);// Adjust buffer size based on expected response
+        std::vector<uint8_t> buffer(255);// Adjust buffer size based on expected response
         const auto bytes_received = conn->read(buffer);
         if (bytes_received < 0) {
             throw std::runtime_error("Failed to receive response");
@@ -127,20 +128,20 @@ struct ModbusClient::Impl {
         return validate_write_response(response, address, value);
     }
 
-    bool write_multiple_registers(uint16_t address, const std::vector<uint16_t>& values, uint8_t unitID) {
+    bool write_multiple_registers(uint16_t address, const uint16_t* values, size_t size, uint8_t unitID) {
         // Construct the data part for the Modbus PDU: address, number of registers, and values
-        std::vector data = {
+        std::vector data {
                 static_cast<unsigned char>((address >> 8) & 0xFF),      // High byte of the address
                 static_cast<unsigned char>(address & 0xFF),             // Low byte of the address
-                static_cast<unsigned char>((values.size() >> 8) & 0xFF),// High byte of number of registers
-                static_cast<unsigned char>(values.size() & 0xFF),       // Low byte of number of registers
-                static_cast<unsigned char>(values.size() * 2)           // Byte count (2 bytes per register)
+                static_cast<unsigned char>((size >> 8) & 0xFF),// High byte of number of registers
+                static_cast<unsigned char>(size & 0xFF),       // Low byte of number of registers
+                static_cast<unsigned char>(size * 2)           // Byte count (2 bytes per register)
         };
 
         // Append register values (each register is 2 bytes)
-        for (const auto& value : values) {
-            data.emplace_back(static_cast<unsigned char>((value >> 8) & 0xFF));// High byte of value
-            data.emplace_back(static_cast<unsigned char>(value & 0xFF));       // Low byte of value
+        for (unsigned i = 0; i < size; ++i) {
+            data.emplace_back(static_cast<unsigned char>((values[i] >> 8) & 0xFF));// High byte of value
+            data.emplace_back(static_cast<unsigned char>(values[i] & 0xFF));       // Low byte of value
         }
 
         // Create the Modbus request
@@ -151,9 +152,9 @@ struct ModbusClient::Impl {
             return false;
         }
 
-        const auto response = receive_response(values.size());
+        const auto response = receive_response(size);
         // Validate the response (should echo the address and number of registers written)
-        return validate_write_response(response, address, values.size());
+        return validate_write_response(response, address, size);
     }
 
     TCPClientContext ctx;
@@ -170,12 +171,24 @@ std::vector<uint16_t> ModbusClient::read_holding_registers(uint16_t address, uin
     return pimpl_->read_holding_registers(address, count, unit_id);
 }
 
+uint16_t ModbusClient::read_uint16(uint16_t address, uint8_t unit_id) {
+    return pimpl_->read_holding_registers(address, 1, unit_id).front();
+}
+
+uint32_t ModbusClient::read_uint32(uint16_t address, uint8_t unit_id) {
+    return decode_uint32(pimpl_->read_holding_registers(address, 2, unit_id));
+}
+
+float ModbusClient::read_float(uint16_t address, uint8_t unit_id) {
+    return decode_float(pimpl_->read_holding_registers(address, 2, unit_id));
+}
+
 bool ModbusClient::write_single_register(uint16_t address, uint16_t value, uint8_t unit_id) {
     return pimpl_->write_single_register(address, value, unit_id);
 }
 
-bool ModbusClient::write_multiple_registers(uint16_t address, const std::vector<uint16_t>& values, uint8_t unitID) {
-    return pimpl_->write_multiple_registers(address, values, unitID);
+bool ModbusClient::write_multiple_registers(uint16_t address, const uint16_t* values, size_t size, uint8_t unitID) {
+    return pimpl_->write_multiple_registers(address, values, size, unitID);
 }
 
 ModbusClient::~ModbusClient() = default;

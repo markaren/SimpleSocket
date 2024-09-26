@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <vector>
+#include <array>
 
 namespace simple_socket {
 
@@ -32,8 +33,8 @@ namespace simple_socket {
         return decoded_value;
     }
 
-    inline std::vector<uint16_t> encode_uint32(uint32_t value) {
-        std::vector<uint16_t> data(2);
+    inline std::array<uint16_t, 2> encode_uint32(uint32_t value) {
+        std::array<uint16_t, 2> data{};
 
         data[0] = (static_cast<uint16_t>((value >> 16) & 0xFFFF));// High 16 bits
         data[1] = (static_cast<uint16_t>(value & 0xFFFF));        // Low 16 bit
@@ -41,7 +42,7 @@ namespace simple_socket {
         return data;
     }
 
-    inline std::vector<uint16_t> encode_float(float value) {
+    inline std::array<uint16_t, 2> encode_float(float value) {
         uint32_t raw_value;
         std::memcpy(&raw_value, &value, sizeof(raw_value));// Convert float to uint32_t
         return encode_uint32(raw_value);
