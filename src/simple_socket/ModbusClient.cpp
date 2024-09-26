@@ -1,5 +1,5 @@
 
-#include "simple_socket/ModbusClient.hpp"
+#include "simple_socket/modbus/ModbusClient.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
 

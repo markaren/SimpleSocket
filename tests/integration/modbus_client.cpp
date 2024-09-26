@@ -1,6 +1,6 @@
 
-#include "simple_socket/ModbusClient.hpp"
-#include "simple_socket/byte_conversion.hpp"
+#include "simple_socket/modbus/ModbusClient.hpp"
+#include "simple_socket/modbus/modbus_helper.hpp"
 
 #include <iostream>
 
@@ -14,5 +14,11 @@ int main() {
 
     std::cout << decode_float(result) << std::endl;
 
-    client.write_single_register(3, 256);
+    client.write_single_register(3, 1);
+
+    const auto value = encode_uint32(2);
+    client.write_multiple_registers(4, value);
+
+    const auto floatValue = encode_float(2.1);
+    client.write_multiple_registers(6, floatValue);
 }
