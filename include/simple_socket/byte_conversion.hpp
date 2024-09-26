@@ -3,6 +3,7 @@
 #define SIMPLE_SOCKET_BYTE_CONVERSION_HPP
 
 #include <array>
+#include <cstring>
 #include <stdexcept>
 
 namespace simple_socket {
