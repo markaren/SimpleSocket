@@ -1,9 +1,15 @@
 # SimpleSocket
 
-A simple cross-platform Socket (TCP, UDP, Web and Unix Domain Sockets) implementation for C++ (no external dependencies) 
+A simple cross-platform communication library for C++ (no external dependencies) 
 for education and hobby usage.
 
-On Windows, Named Pipes are also available.
+Supports:
+* UDP
+* TCP/IP
+* Unix Domain Sockets
+* WebSocket Server
+* Modbus client [TCP]
+* Pipes [windows]
 
 > NOT for use in production.
 

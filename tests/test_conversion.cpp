@@ -11,12 +11,12 @@ TEST_CASE("int_to_bytes converts integers to byte arrays correctly", "[int_to_by
     constexpr std::array<unsigned char, 4> expected_big_endian = {0x12, 0x34, 0x56, 0x78};
 
     SECTION("Little-endian conversion") {
-        auto result = int_to_bytes(num, byte_order::LITTLE);
+        const auto result = encode_uint32(num, std::endian::little);
         REQUIRE(result == expected_little_endian);
     }
 
     SECTION("Big-endian conversion") {
-        auto result = int_to_bytes(num, byte_order::BIG);
+        const auto result = encode_uint32(num, std::endian::big);
         REQUIRE(result == expected_big_endian);
     }
 }
@@ -27,12 +27,12 @@ TEST_CASE("bytes_to_int converts byte arrays to integers correctly", "[bytes_to_
     constexpr int expected_num = 305419896; // 0x12345678 in hexadecimal
 
     SECTION("Little-endian conversion") {
-        constexpr int result = bytes_to_int(bytes_little_endian, byte_order::LITTLE);
+        constexpr int result = decode_uint32(bytes_little_endian, std::endian::little);
         REQUIRE(result == expected_num);
     }
 
     SECTION("Big-endian conversion") {
-        constexpr int result = bytes_to_int(bytes_big_endian, byte_order::BIG);
+        constexpr int result = decode_uint32(bytes_big_endian, std::endian::big);
         REQUIRE(result == expected_num);
     }
 }
