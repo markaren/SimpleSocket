@@ -3,7 +3,7 @@ project(simple_socket VERSION 0.2.0)
 
 option(SIMPLE_SOCKET_BUILD_TESTS OFF)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)

@@ -17,7 +17,7 @@ namespace simple_socket {
 
         bool write_single_register(uint16_t address, uint16_t value, uint8_t unit_id = 1);
 
-        bool ModbusClient::write_multiple_registers(uint16_t address, const std::vector<uint16_t>& values, uint8_t unitID = 1);
+        bool write_multiple_registers(uint16_t address, const std::vector<uint16_t>& values, uint8_t unitID = 1);
 
         ~ModbusClient();
 
