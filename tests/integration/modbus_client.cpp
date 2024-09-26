@@ -10,15 +10,32 @@ int main() {
 
     ModbusClient client("127.0.0.1", 5020);
 
-    const auto result = client.read_holding_registers(6, 2);
+    {
+        const auto result = client.read_holding_registers(3, 1);
+        std::cout << result.front() << std::endl;
+    }
 
-    std::cout << decode_float(result) << std::endl;
+    {
+        const auto result = client.read_holding_registers(6, 2);
+        std::cout << decode_float(result) << std::endl;
+    }
 
-    client.write_single_register(3, 1);
+    {
+        client.write_single_register(3, 1);
+    }
 
-    const auto value = encode_uint32(2);
-    client.write_multiple_registers(4, value);
+    {
+        const auto value = encode_uint32(2);
+        client.write_multiple_registers(4, value);
+    }
 
-    const auto floatValue = encode_float(2.1);
-    client.write_multiple_registers(6, floatValue);
+    {
+        const auto floatValue = encode_float(2.1);
+        client.write_multiple_registers(6, floatValue);
+    }
+
+    {
+        const auto text = client.read_holding_registers(16, 4);
+        std::cout << decode_text(text) << std::endl;
+    }
 }

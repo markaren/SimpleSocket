@@ -5,6 +5,7 @@
 #include "simple_socket/ByteOrder.hpp"
 
 #include <vector>
+#include <sstream>
 
 namespace simple_socket {
 
@@ -12,6 +13,17 @@ namespace simple_socket {
     inline uint32_t decode_uint32(const std::vector<uint16_t>& data, ByteOrder order = DEFAULT_BYTE_ORDER) {
         return (static_cast<uint32_t>(data[order == ByteOrder::BIG ? 0 : 1]) << 16) |
                static_cast<uint32_t>(data[order == ByteOrder::BIG ? 1 : 0]);
+    }
+
+    // Decode 32-bit unsigned integer (4 bytes)
+    inline std::string decode_text(const std::vector<uint16_t>& data, ByteOrder order = DEFAULT_BYTE_ORDER) {
+        std::stringstream ss;
+        for (const auto& byte : data) {
+            uint8_t high_byte = (byte >> 8) & 0xFF;  // Get the upper 8 bits
+            uint8_t low_byte = byte & 0xFF;
+            ss << (order == ByteOrder::BIG ? high_byte : low_byte) << (order == ByteOrder::BIG ? low_byte : high_byte);
+        }
+        return ss.str();
     }
 
     // Decode IEEE 754 32-bit float (4 bytes)
