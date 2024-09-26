@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <cstring>
 
 namespace simple_socket {
 
