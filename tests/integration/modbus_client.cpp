@@ -43,8 +43,8 @@ int main() {
     }
 
     {
-        const auto text = client.read_holding_registers(16, 4);
-        std::cout << decode_text(text) << std::endl;
+        const auto text = client.read_holding_registers(16, 5);
+        std::cout << decode_text(text, 5) << std::endl;
     }
 
     {
