@@ -1,11 +1,11 @@
 
-#ifndef MODBUS_HELPER_HPP
-#define MODBUS_HELPER_HPP
+#ifndef SIMPLE_SOCKET_MODBUS_HELPER_HPP
+#define SIMPLE_SOCKET_MODBUS_HELPER_HPP
 
 #include "simple_socket/ByteOrder.hpp"
 
-#include <vector>
 #include <sstream>
+#include <vector>
 
 namespace simple_socket {
 
@@ -19,7 +19,7 @@ namespace simple_socket {
     inline std::string decode_text(const std::vector<uint16_t>& data, ByteOrder order = DEFAULT_BYTE_ORDER) {
         std::stringstream ss;
         for (const auto& byte : data) {
-            uint8_t high_byte = (byte >> 8) & 0xFF;  // Get the upper 8 bits
+            uint8_t high_byte = (byte >> 8) & 0xFF;// Get the upper 8 bits
             uint8_t low_byte = byte & 0xFF;
             ss << (order == ByteOrder::BIG ? high_byte : low_byte) << (order == ByteOrder::BIG ? low_byte : high_byte);
         }
@@ -45,10 +45,31 @@ namespace simple_socket {
 
     inline std::vector<uint16_t> encode_float(float value, ByteOrder order = DEFAULT_BYTE_ORDER) {
         uint32_t raw_value;
-        std::memcpy(&raw_value, &value, sizeof(raw_value)); // Convert float to uint32_t
+        std::memcpy(&raw_value, &value, sizeof(raw_value));// Convert float to uint32_t
         return encode_uint32(raw_value, order);
+    }
+
+    inline std::vector<uint16_t> encode_text(const std::string& data, ByteOrder order = DEFAULT_BYTE_ORDER) {
+
+        std::vector<uint16_t> encoded_data;
+        for (unsigned i = 0; i < data.size(); i += 2) {
+            uint16_t value;
+            if (i + 1 < data.size()) {
+                if (order == ByteOrder::BIG) {
+                    value = (static_cast<uint16_t>(data[i]) << 8) | static_cast<uint16_t>(data[i + 1]);
+                } else {
+                    value = (static_cast<uint16_t>(data[i + 1]) << 8) | static_cast<uint16_t>(data[i]);
+                }
+            } else {
+                value = static_cast<uint16_t>(data[i]) << (order == ByteOrder::BIG ? 8 : 0);
+            }
+
+            encoded_data.emplace_back(value);
+        }
+
+        return encoded_data;
     }
 
 }// namespace simple_socket
 
-#endif//MODBUS_HELPER_HPP
+#endif//SIMPLE_SOCKET_MODBUS_HELPER_HPP
