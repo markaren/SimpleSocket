@@ -32,7 +32,9 @@ namespace simple_socket {
 
         explicit WebSocket(uint16_t port);
 
-        void stop() const;
+        void start();
+
+        void stop();
 
         ~WebSocket();
 

@@ -20,13 +20,13 @@ namespace simple_socket {
 
         bool sendTo(const std::string& address, uint16_t remotePort, const std::string& data);
 
-        bool sendTo(const std::string& address, uint16_t remotePort, const std::vector<unsigned char>& data);
+        bool sendTo(const std::string& address, uint16_t remotePort, const std::vector<uint8_t>& data);
 
-        bool sendTo(const std::string& address, uint16_t remotePort, const unsigned char* data, size_t size);
+        bool sendTo(const std::string& address, uint16_t remotePort, const uint8_t* data, size_t size);
 
-        int recvFrom(const std::string& address, uint16_t remotePort, std::vector<unsigned char>& buffer);
+        int recvFrom(const std::string& address, uint16_t remotePort, std::vector<uint8_t>& buffer);
 
-        int recvFrom(const std::string& address, uint16_t remotePort, unsigned char* buffer, size_t size);
+        int recvFrom(const std::string& address, uint16_t remotePort, uint8_t* buffer, size_t size);
 
         [[nodiscard]] std::string recvFrom(const std::string& address, uint16_t remotePort);
 

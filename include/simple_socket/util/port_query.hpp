@@ -2,11 +2,13 @@
 #ifndef SIMPLE_SOCKET_PORT_QUERY_HPP
 #define SIMPLE_SOCKET_PORT_QUERY_HPP
 
+#include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace simple_socket {
 
-    int getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts = {});
+    std::optional<uint16_t> getAvailablePort(uint16_t startPort, uint16_t endPort, const std::vector<uint16_t>& excludePorts = {});
 
 }
 

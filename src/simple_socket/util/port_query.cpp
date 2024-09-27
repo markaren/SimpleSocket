@@ -3,11 +3,12 @@
 
 #include "simple_socket/socket_common.hpp"
 
+#include <optional>
 #include <algorithm>
 
 using namespace simple_socket;
 
-int simple_socket::getAvailablePort(int startPort, int endPort, const std::vector<int>& excludePorts) {
+std::optional<uint16_t> simple_socket::getAvailablePort(uint16_t startPort, uint16_t endPort, const std::vector<uint16_t>& excludePorts) {
 
 #ifdef _WIN32
     WSASession session;
@@ -27,7 +28,7 @@ int simple_socket::getAvailablePort(int startPort, int endPort, const std::vecto
 
     for (int port = startPort; port <= endPort; ++port) {
 
-        if (std::find(excludePorts.begin(), excludePorts.end(), port) != excludePorts.end()) {
+        if (std::ranges::find(excludePorts, port) != excludePorts.end()) {
             continue;
         }
 

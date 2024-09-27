@@ -8,6 +8,8 @@ using namespace simple_socket;
 int main() {
 
     WebSocket ws(8081);
+    ws.start();
+
     ws.onOpen = [](auto c) {
         std::cout << "[" << c->uuid() << "] onOpen" << std::endl;
     };
@@ -24,4 +26,6 @@ int main() {
     //wait for key press
     std::cout << "Press any key to stop server.." << std::endl;
     std::cin.get();
+
+    ws.stop();
 }

@@ -18,7 +18,7 @@ namespace {
         request_[2] = 0x00;                       // Protocol ID (always 0 for Modbus TCP)
         request_[3] = 0x00;
 
-        const uint8_t length = data.size() + 2;
+        const auto length = data.size() + 2;
         request_[4] = length >> 8;// Length field (2 bytes: unitID + functionCode + data)
         request_[5] = length & 0xFF;
         request_[6] = unitID;// Unit ID

@@ -13,7 +13,7 @@ namespace simple_socket {
     public:
         UnixDomainClientContext();
 
-        std::unique_ptr<SimpleConnection> connect(const std::string& domain);
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& domain);
 
         ~UnixDomainClientContext();
 
@@ -26,7 +26,7 @@ namespace simple_socket {
     public:
         explicit UnixDomainServer(const std::string& domain, int backlog = 1);
 
-        std::unique_ptr<SimpleConnection> accept();
+        [[nodiscard]] std::unique_ptr<SimpleConnection> accept();
 
         void close();
 

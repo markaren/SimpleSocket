@@ -77,10 +77,10 @@ private:
     Socket socket;
 };
 
-TCPServer::TCPServer(int port, int backlog)
+TCPServer::TCPServer(uint16_t port, int backlog)
     : pimpl_(std::make_unique<Impl>(port, backlog)) {}
 
-std::unique_ptr<SimpleConnection> TCPServer::accept() {
+[[nodiscard]] std::unique_ptr<SimpleConnection> TCPServer::accept() {
 
     return pimpl_->accept();
 }
@@ -92,10 +92,11 @@ void TCPServer::close() {
 
 TCPServer::~TCPServer() = default;
 
+
 TCPClientContext::TCPClientContext()
     : pimpl_(std::make_unique<Impl>()) {}
 
-std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& ip, int port) {
+[[nodiscard]] std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& ip, uint16_t port) {
 
     SOCKET sock = createSocket();
 

@@ -3,14 +3,15 @@
 #define SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
 
 #include <cstddef>
+#include <cstdint>
 
 namespace simple_socket {
 
     class SimpleConnection {
     public:
-        virtual int read(unsigned char* buffer, size_t size) = 0;
-        virtual bool readExact(unsigned char* buffer, size_t size) = 0;
-        virtual bool write(const unsigned char* data, size_t size) = 0;
+        virtual int read(uint8_t* buffer, size_t size) = 0;
+        virtual bool readExact(uint8_t* buffer, size_t size) = 0;
+        virtual bool write(const uint8_t* data, size_t size) = 0;
 
         template<class Container>
         int read(Container& buffer) {
@@ -28,12 +29,12 @@ namespace simple_socket {
         }
 
         bool write(const char* data, size_t size) {
-            return write(reinterpret_cast<const unsigned char*>(data), size);
+            return write(reinterpret_cast<const uint8_t*>(data), size);
         }
 
         template<size_t N>
         bool write(const char (&data)[N]) {
-            return write(reinterpret_cast<const unsigned char*>(data), N - 1);// N - 1 to exclude null terminator if it's a C-string
+            return write(reinterpret_cast<const uint8_t*>(data), N - 1);// N - 1 to exclude null terminator if it's a C-string
         }
 
         virtual void close() = 0;

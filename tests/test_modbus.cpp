@@ -64,7 +64,7 @@ TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
 TEST_CASE("Test modbus client/server") {
 
     const auto port = getAvailablePort(502, 600);
-    REQUIRE(port != -1);
+    REQUIRE(port);
 
     uint16_t v1 = 1;
     uint32_t v2 = 2;
@@ -75,10 +75,10 @@ TEST_CASE("Test modbus client/server") {
     reg.setUint32(1, v2);
     reg.setFloat(3, v3);
 
-    ModbusServer server(reg, port);
+    ModbusServer server(reg, *port);
     server.start();
 
-    ModbusClient client("127.0.0.1", port);
+    ModbusClient client("127.0.0.1", *port);
     REQUIRE(client.read_uint16(0) == v1);
     REQUIRE(client.read_uint32(1) == v2);
     REQUIRE_THAT(client.read_float(3), Catch::Matchers::WithinRel(v3));

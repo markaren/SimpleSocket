@@ -8,6 +8,8 @@ using namespace simple_socket;
 
 int main() {
 
+    // this example assumes pymodbus.simulator is running
+
     ModbusClient client("127.0.0.1", 5020);
 
     {

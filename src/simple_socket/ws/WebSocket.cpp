@@ -192,12 +192,7 @@ public:
 struct WebSocket::Impl {
 
     explicit Impl(WebSocket* scope, uint16_t port)
-        : scope(scope), socket(port) {
-
-        thread = std::thread([this] {
-            run();
-        });
-    }
+        : scope(scope), socket(port) {}
 
     void run() {
 
@@ -223,6 +218,12 @@ struct WebSocket::Impl {
                 }
             }
         }
+    }
+
+    void start() {
+        thread = std::thread([this] {
+           run();
+       });
     }
 
     void stop() {
@@ -255,7 +256,12 @@ const std::string& WebSocketConnection::uuid() {
 WebSocket::WebSocket(uint16_t port)
     : pimpl_(std::make_unique<Impl>(this, port)) {}
 
-void WebSocket::stop() const {
+
+void WebSocket::start() {
+    pimpl_->start();
+}
+
+void WebSocket::stop() {
     pimpl_->stop();
 }
 

@@ -40,9 +40,9 @@ namespace {
 TEST_CASE("TCP read/write") {
 
     const auto port = getAvailablePort(8000, 9000);
-    REQUIRE(port != -1);
+    REQUIRE(port);
 
-    TCPServer server(port);
+    TCPServer server(*port);
 
     std::thread serverThread([&server] {
         std::unique_ptr<SimpleConnection> conn;
@@ -54,7 +54,7 @@ TEST_CASE("TCP read/write") {
 
     std::thread clientThread([port] {
         TCPClientContext client;
-        const auto conn = client.connect("127.0.0.1", port);
+        const auto conn = client.connect("127.0.0.1", *port);
         REQUIRE(conn);
 
         std::string message = generateMessage();
@@ -79,9 +79,9 @@ TEST_CASE("TCP read/write") {
 TEST_CASE("TCP readexact/write") {
 
     const auto port = getAvailablePort(8000, 9000);
-    REQUIRE(port != -1);
+    REQUIRE(port);
 
-    TCPServer server(port);
+    TCPServer server(*port);
 
     std::thread serverThread([&server] {
         std::unique_ptr<SimpleConnection> conn;
@@ -93,7 +93,7 @@ TEST_CASE("TCP readexact/write") {
 
     std::thread clientThread([port] {
         TCPClientContext client;
-        const auto conn = client.connect("127.0.0.1", port);
+        const auto conn = client.connect("127.0.0.1", *port);
         REQUIRE(conn);
 
         std::string message = generateMessage();

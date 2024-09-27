@@ -168,6 +168,7 @@ void UDPSocket::close() {
 }
 
 std::unique_ptr<SimpleConnection> UDPSocket::makeConnection(const std::string& address, uint16_t remotePort) {
+
     struct UDPConnection: SimpleConnection {
 
         UDPSocket* socket;
