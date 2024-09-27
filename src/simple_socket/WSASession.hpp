@@ -3,7 +3,6 @@
 #define SIMPLE_SOCKET_WSASESSION_HPP
 
 #include <WinSock2.h>
-#include <memory>
 #include <mutex>
 #include <system_error>
 

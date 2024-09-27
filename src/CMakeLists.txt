@@ -2,8 +2,6 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
 
-        "simple_socket/byte_conversion.hpp"
-        "simple_socket/port_query.hpp"
         "simple_socket/SimpleConnection.hpp"
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
@@ -14,21 +12,30 @@ set(publicHeaders
         "simple_socket/modbus/ModbusClient.hpp"
         "simple_socket/modbus/modbus_helper.hpp"
         "simple_socket/modbus/ModbusServer.hpp"
+
+        "simple_socket/util/byte_conversion.hpp"
+        "simple_socket/util/port_query.hpp"
 )
 
 set(privateHeaders
-        "simple_socket/common.hpp"
-        "simple_socket/uuid.hpp"
+        "simple_socket/socket_common.hpp"
+        "simple_socket/Socket.hpp"
+        "simple_socket/util/uuid.hpp"
+
+        "simple_socket/ws/WebSocketHandshake.hpp"
 )
 
 set(sources
-        "simple_socket/HoldingRegister.cpp"
-        "simple_socket/port_query.cpp"
-        "simple_socket/ModbusClient.cpp"
-        "simple_socket/ModbusServer.cpp"
-        "simple_socket/Socket.cpp"
+        "simple_socket/util/port_query.cpp"
+        "simple_socket/TCPSocket.cpp"
         "simple_socket/UDPSocket.cpp"
-        "simple_socket/WebSocket.cpp"
+        "simple_socket/UnixDomainSocket.cpp"
+
+        "simple_socket/ws/WebSocket.cpp"
+
+        "simple_socket/modbus/HoldingRegister.cpp"
+        "simple_socket/modbus/ModbusClient.cpp"
+        "simple_socket/modbus/ModbusServer.cpp"
 )
 
 if (WIN32)
@@ -37,7 +44,6 @@ if (WIN32)
     )
 
     list(APPEND privateHeaders
-            "simple_socket/WebSocketHandshake.hpp"
             "simple_socket/WSASession.hpp"
     )
 

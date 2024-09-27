@@ -45,14 +45,6 @@ namespace simple_socket {
         }
     }
 
-    inline void unlinkPath(const std::string& path) {
-#ifdef _WIN32
-        DeleteFile(path.c_str());
-#else
-        unlink(path.c_str());
-#endif
-    }
-
 }// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_COMMON_HPP

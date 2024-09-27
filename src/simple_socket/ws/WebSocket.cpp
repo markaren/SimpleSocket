@@ -1,9 +1,10 @@
 
 #include "simple_socket/WebSocket.hpp"
 #include "simple_socket/TCPSocket.hpp"
-#include "simple_socket/WebSocketHandshake.hpp"
-#include "simple_socket/common.hpp"
-#include "simple_socket/uuid.hpp"
+#include "simple_socket/socket_common.hpp"
+
+#include "simple_socket/util/uuid.hpp"
+#include "simple_socket/ws/WebSocketHandshake.hpp"
 
 #include <algorithm>
 #include <atomic>

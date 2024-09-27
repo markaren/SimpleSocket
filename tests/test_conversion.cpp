@@ -1,7 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "simple_socket/byte_conversion.hpp"
+#include "simple_socket/util/byte_conversion.hpp"
 
 using namespace simple_socket;
 

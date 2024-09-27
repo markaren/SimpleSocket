@@ -1,7 +1,7 @@
 
-#include "simple_socket/port_query.hpp"
+#include "simple_socket/util/port_query.hpp"
 
-#include "simple_socket/common.hpp"
+#include "simple_socket/socket_common.hpp"
 
 #include <algorithm>
 
@@ -41,5 +41,5 @@ int simple_socket::getAvailablePort(int startPort, int endPort, const std::vecto
 
     closeSocket(sockfd);
 
-    return -1;  // No available port found
+    return -1;// No available port found
 }

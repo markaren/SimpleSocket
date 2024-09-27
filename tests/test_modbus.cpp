@@ -6,7 +6,7 @@
 #include "simple_socket/modbus/ModbusServer.hpp"
 #include "simple_socket/modbus/ModbusClient.hpp"
 
-#include "simple_socket/port_query.hpp"
+#include "simple_socket/util/port_query.hpp"
 
 
 using namespace simple_socket;

@@ -1,6 +1,6 @@
 
-#ifndef SIMPLE_SOCKET_SOCKET_HPP
-#define SIMPLE_SOCKET_SOCKET_HPP
+#ifndef SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
+#define SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
 
 #include <cstddef>
 
@@ -43,4 +43,4 @@ namespace simple_socket {
 
 }// namespace simple_socket
 
-#endif//SIMPLE_SOCKET_SOCKET_HPP
+#endif//SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
