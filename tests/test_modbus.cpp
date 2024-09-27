@@ -64,6 +64,7 @@ TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
 TEST_CASE("Test modbus client/server") {
 
     const auto port = getAvailablePort(502, 600);
+    REQUIRE(port != -1);
 
     uint16_t v1 = 1;
     uint32_t v2 = 2;
