@@ -27,14 +27,23 @@ namespace simple_socket {
         // Method to get a uint32_t value from two registers
         uint32_t getUint32(size_t index) const;
 
+        // Method to set a uint32_t value at a specific register index (requires 2 registers)
+        void setUint64(size_t index, uint64_t value);
+
+        // Method to get a uint32_t value from two registers
+        uint64_t getUint64(size_t index) const;
+
         // Method to set a float value (requires 2 registers)
         void setFloat(size_t index, float value);
 
         // Method to get a float value from two registers
         float getFloat(size_t index) const;
 
-        // Method to print all register values (for debugging)
-        void printRegisters() const;
+        // Method to set a float value (requires 2 registers)
+        void setDouble(size_t index, double value);
+
+        // Method to get a float value from two registers
+        double getDouble(size_t index) const;
 
     private:
         mutable std::mutex m_;

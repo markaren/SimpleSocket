@@ -1,8 +1,8 @@
 
 #include "simple_socket/modbus/HoldingRegister.hpp"
 
-#include <cstring>
-#include <iostream>
+#include "simple_socket/modbus/modbus_helper.hpp"
+
 #include <stdexcept>
 
 using namespace simple_socket;
@@ -17,7 +17,7 @@ size_t HoldingRegister::size() const {
 
 void HoldingRegister::setUint16(size_t index, uint16_t value) {
     std::lock_guard lck(m_);
-    checkBounds(index, 1);// Check if index is within bounds
+    checkBounds(index, 1);
     registers_[index] = value;
 }
 
@@ -29,42 +29,50 @@ uint16_t HoldingRegister::getUint16(size_t index) const {
 
 void HoldingRegister::setUint32(size_t index, uint32_t value) {
     std::lock_guard lck(m_);
-    checkBounds(index, 2);// Check if two registers are available
-
-    registers_[index] = static_cast<uint16_t>(value >> 16);       // High 16 bits
-    registers_[index + 1] = static_cast<uint16_t>(value & 0xFFFF);// Low 16 bits
+    checkBounds(index, 2);
+    encode_uint32(value, registers_, index);
 }
 
 uint32_t HoldingRegister::getUint32(size_t index) const {
     std::lock_guard lck(m_);
     checkBounds(index, 2);
-    uint32_t high = static_cast<uint32_t>(registers_[index]) << 16;
-    uint32_t low = registers_[index + 1];
-    return high | low;
+    return decode_uint32(registers_, index);
+}
+
+void HoldingRegister::setUint64(size_t index, uint64_t value) {
+    std::lock_guard lck(m_);
+    checkBounds(index, 4);
+    encode_uint64(value, registers_, index);
+}
+
+uint64_t HoldingRegister::getUint64(size_t index) const {
+    std::lock_guard lck(m_);
+    checkBounds(index, 4);
+    return decode_uint64(registers_, index);
 }
 
 void HoldingRegister::setFloat(size_t index, float value) {
     std::lock_guard lck(m_);
-    checkBounds(index, 2);// Check if two registers are available
-    uint32_t floatAsInt;
-    std::memcpy(&floatAsInt, &value, sizeof(float));// Interpret float as uint32
-    setUint32(index, floatAsInt);                   // Store as uint32
+    checkBounds(index, 2);
+    encode_float(value, registers_, index);
 }
 
 float HoldingRegister::getFloat(size_t index) const {
     std::lock_guard lck(m_);
     checkBounds(index, 2);
-    uint32_t floatAsInt = getUint32(index);// Get value as uint32
-    float result;
-    std::memcpy(&result, &floatAsInt, sizeof(float));// Convert back to float
-    return result;
+    return decode_float(registers_, index);
 }
 
-void HoldingRegister::printRegisters() const {
+void HoldingRegister::setDouble(size_t index, double value) {
     std::lock_guard lck(m_);
-    for (size_t i = 0; i < registers_.size(); ++i) {
-        std::cout << "Register[" << i << "] = " << registers_[i] << std::endl;
-    }
+    checkBounds(index, 4);
+    encode_double(value, registers_, index);
+}
+
+double HoldingRegister::getDouble(size_t index) const {
+    std::lock_guard lck(m_);
+    checkBounds(index, 4);
+    return decode_double(registers_, index);
 }
 
 void HoldingRegister::checkBounds(size_t index, size_t count) const {

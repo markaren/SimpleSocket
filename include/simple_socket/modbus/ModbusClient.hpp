@@ -21,17 +21,19 @@ namespace simple_socket {
         std::vector<uint16_t> read_holding_registers(uint16_t address, uint16_t count, uint8_t unit_id = 1);
 
         uint16_t read_uint16(uint16_t address, uint8_t unit_id = 1);
-
         uint32_t read_uint32(uint16_t address, uint8_t unit_id = 1);
+        uint64_t read_uint64(uint16_t address, uint8_t unit_id = 1);
 
         float read_float(uint16_t address, uint8_t unit_id = 1);
+        double read_double(uint16_t address, uint8_t unit_id = 1);
 
         bool write_single_register(uint16_t address, uint16_t value, uint8_t unit_id = 1);
-
         bool write_multiple_registers(uint16_t address, const uint16_t* values, size_t size, uint8_t unitID = 1);
 
         template <typename ArrayLike>
         bool write_multiple_registers(uint16_t address, const ArrayLike& values, uint8_t unitID = 1) {
+            static_assert(std::is_same<typename ArrayLike::value_type, uint16_t>::value,
+                  "Buffer must hold uint16_t elements");
             return write_multiple_registers(address, values.data(), values.size(), unitID);
         }
 

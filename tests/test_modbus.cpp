@@ -3,8 +3,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "simple_socket/modbus/HoldingRegister.hpp"
-#include "simple_socket/modbus/ModbusServer.hpp"
 #include "simple_socket/modbus/ModbusClient.hpp"
+#include "simple_socket/modbus/ModbusServer.hpp"
 
 #include "simple_socket/util/port_query.hpp"
 
@@ -15,7 +15,7 @@ using namespace simple_socket;
 TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
     SECTION("Initialization and size check") {
         HoldingRegister reg(10);
-        REQUIRE(reg.size() == 10); // Check if size is correct after initialization
+        REQUIRE(reg.size() == 10);// Check if size is correct after initialization
     }
 
     SECTION("Setting and getting uint16_t values") {
@@ -26,8 +26,8 @@ TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
         REQUIRE(reg.getUint16(0) == 0x1234);
 
         // Check out-of-bounds behavior
-        REQUIRE_THROWS_AS(reg.setUint16(10, 0x1234), std::out_of_range); // Index out of bounds
-        REQUIRE_THROWS_AS(reg.getUint16(10), std::out_of_range);         // Index out of bounds
+        REQUIRE_THROWS_AS(reg.setUint16(10, 0x1234), std::out_of_range);// Index out of bounds
+        REQUIRE_THROWS_AS(reg.getUint16(10), std::out_of_range);        // Index out of bounds
     }
 
     SECTION("Setting and getting uint32_t values") {
@@ -38,12 +38,30 @@ TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
         REQUIRE(reg.getUint32(1) == 0x12345678);
 
         // Check that high and low parts are correctly placed
-        REQUIRE(reg.getUint16(1) == 0x1234); // High 16 bits
-        REQUIRE(reg.getUint16(2) == 0x5678); // Low 16 bits
+        REQUIRE(reg.getUint16(1) == 0x1234);// High 16 bits
+        REQUIRE(reg.getUint16(2) == 0x5678);// Low 16 bits
 
         // Check out-of-bounds behavior
-        REQUIRE_THROWS_AS(reg.setUint32(9, 0x12345678), std::out_of_range); // Not enough space for two registers
-        REQUIRE_THROWS_AS(reg.getUint32(9), std::out_of_range);             // Not enough space for two registers
+        REQUIRE_THROWS_AS(reg.setUint32(9, 0x12345678), std::out_of_range);// Not enough space for two registers
+        REQUIRE_THROWS_AS(reg.getUint32(9), std::out_of_range);            // Not enough space for two registers
+    }
+
+    SECTION("Setting and getting uint64_t values") {
+        HoldingRegister reg(10);
+
+        // Set and get uint64_t at a valid index
+        reg.setUint64(1, 0x123456789ABCDEF0);
+        REQUIRE(reg.getUint64(1) == 0x123456789ABCDEF0);
+
+        // Check that the high and low parts are correctly placed in four 16-bit registers
+        REQUIRE(reg.getUint16(1) == 0x1234);// Highest 16 bits
+        REQUIRE(reg.getUint16(2) == 0x5678);// Next 16 bits
+        REQUIRE(reg.getUint16(3) == 0x9ABC);// Next 16 bits
+        REQUIRE(reg.getUint16(4) == 0xDEF0);// Lowest 16 bits
+
+        // Check out-of-bounds behavior
+        REQUIRE_THROWS_AS(reg.setUint64(7, 0x123456789ABCDEF0), std::out_of_range);// Not enough space for four registers
+        REQUIRE_THROWS_AS(reg.getUint64(7), std::out_of_range);                    // Not enough space for four registers
     }
 
     SECTION("Setting and getting float values") {
@@ -55,10 +73,22 @@ TEST_CASE("HoldingRegister basic operations", "[HoldingRegister]") {
         REQUIRE_THAT(reg.getFloat(0), Catch::Matchers::WithinRel(value));
 
         // Check out-of-bounds behavior
-        REQUIRE_THROWS_AS(reg.setFloat(9, value), std::out_of_range); // Not enough space for two registers
-        REQUIRE_THROWS_AS(reg.getFloat(9), std::out_of_range);        // Not enough space for two registers
+        REQUIRE_THROWS_AS(reg.setFloat(9, value), std::out_of_range);// Not enough space for two registers
+        REQUIRE_THROWS_AS(reg.getFloat(9), std::out_of_range);       // Not enough space for two registers
     }
 
+    SECTION("Setting and getting double values") {
+        HoldingRegister reg(10);
+        double value = 3.141592653589793;
+
+        // Set and get double at valid index
+        reg.setDouble(0, value);
+        REQUIRE_THAT(reg.getDouble(0), Catch::Matchers::WithinRel(value));
+
+        // Check out-of-bounds behavior
+        REQUIRE_THROWS_AS(reg.setDouble(7, value), std::out_of_range);// Not enough space for four registers
+        REQUIRE_THROWS_AS(reg.getDouble(7), std::out_of_range);       // Not enough space for four registers
+    }
 }
 
 TEST_CASE("Test modbus client/server") {
@@ -84,5 +114,4 @@ TEST_CASE("Test modbus client/server") {
     REQUIRE_THAT(client.read_float(3), Catch::Matchers::WithinRel(v3));
 
     server.stop();
-
 }

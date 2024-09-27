@@ -180,8 +180,16 @@ uint32_t ModbusClient::read_uint32(uint16_t address, uint8_t unit_id) {
     return decode_uint32(pimpl_->read_holding_registers(address, 2, unit_id));
 }
 
+uint64_t ModbusClient::read_uint64(uint16_t address, uint8_t unit_id) {
+    return decode_uint64(pimpl_->read_holding_registers(address, 4, unit_id));
+}
+
 float ModbusClient::read_float(uint16_t address, uint8_t unit_id) {
     return decode_float(pimpl_->read_holding_registers(address, 2, unit_id));
+}
+
+double ModbusClient::read_double(uint16_t address, uint8_t unit_id) {
+    return decode_double(pimpl_->read_holding_registers(address, 4, unit_id));
 }
 
 bool ModbusClient::write_single_register(uint16_t address, uint16_t value, uint8_t unit_id) {
