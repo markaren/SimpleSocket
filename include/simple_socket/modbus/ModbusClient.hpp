@@ -13,6 +13,11 @@ namespace simple_socket {
     public:
         ModbusClient(const std::string& host, uint16_t port);
 
+        ModbusClient(const ModbusClient&) = delete;
+        ModbusClient& operator=(const ModbusClient&) = delete;
+        ModbusClient(ModbusClient&&) = delete;
+        ModbusClient& operator=(ModbusClient&&) = delete;
+
         std::vector<uint16_t> read_holding_registers(uint16_t address, uint16_t count, uint8_t unit_id = 1);
 
         uint16_t read_uint16(uint16_t address, uint8_t unit_id = 1);

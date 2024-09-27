@@ -41,7 +41,7 @@ namespace simple_socket {
         // Method to set a uint32_t value at a specific register index (requires 2 registers)
         void setUint32(size_t index, uint32_t value) {
             std::lock_guard lck(m_);
-            checkBounds(index, 2);                                       // Check if two registers are available
+            checkBounds(index, 2);// Check if two registers are available
 
             registers_[index] = static_cast<uint16_t>(value >> 16);       // High 16 bits
             registers_[index + 1] = static_cast<uint16_t>(value & 0xFFFF);// Low 16 bits
@@ -93,6 +93,7 @@ namespace simple_socket {
                 throw std::out_of_range("Register index out of bounds");
             }
         }
+
     };
 
 }// namespace simple_socket

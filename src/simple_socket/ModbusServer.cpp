@@ -22,21 +22,20 @@ namespace {
     }
 
     void processRequest(SimpleConnection& conn, const std::vector<uint8_t>& request, HoldingRegister& reg) {
-        const uint8_t functionCode = request[1];
-        const uint16_t startAddress = (request[2] << 8) | request[3];
-        const uint16_t quantity = (request[4] << 8) | request[5];
+        const int8_t headerSize = 6;
+        const uint8_t functionCode = request[headerSize + 1];
+        const uint16_t startAddress = (request[headerSize + 2] << 8) | request[headerSize + 3];
+        const uint16_t quantity = (request[headerSize + 4] << 8) | request[headerSize + 5];
 
         switch (functionCode) {
             case 0x03: {// Read Holding Registers
                 if (startAddress + quantity > reg.size()) {
-                    sendException(conn, request[0], functionCode, 0x02);// Illegal Data Address
+                    sendException(conn, request[headerSize + 0], functionCode, 0x02);// Illegal Data Address
                     return;
                 }
 
                 // Prepare response: device address, function code, byte count
-                std::vector<uint8_t> response;
-                response.push_back(request[0]);  // Device address
-                response.push_back(functionCode);// Function code
+                std::vector response(request.begin(), request.begin() + 8);
                 response.push_back(quantity * 2);// Byte count (2 bytes per register)
 
                 // Append register values to the response
@@ -68,8 +67,12 @@ struct ModbusServer::Impl {
 
     void start() {
         thread_ = std::jthread([this] {
-            auto conn = server_.accept();
-            clients_.emplace_back(&Impl::clientThread, this, std::move(conn));
+            try {
+                while (!stop_) {
+                    auto conn = server_.accept();
+                    clients_.emplace_back(&Impl::clientThread, this, std::move(conn));
+                }
+            } catch (const std::exception&) {}
         });
     }
 
@@ -80,24 +83,24 @@ struct ModbusServer::Impl {
 
     void clientThread(std::unique_ptr<SimpleConnection> conn) {
 
-        std::array<uint8_t, 6> header{};
+        std::array<uint8_t, 6> mbap{};
         std::vector<uint8_t> request;
         while (!stop_) {
 
-            if (!conn->readExact(header)) {
+            if (!conn->readExact(mbap)) {
                 std::cerr << "Error reading request or connection closed\n";
                 break;// Exit the loop if there’s an error or the connection is closed
             }
 
             // Extract the length from the MBAP header (bytes 4 and 5)
             // Length field specifies the number of bytes following the Unit Identifier
-            const uint16_t length = (header[4] << 8) | header[5];
+            const uint16_t length = (mbap[4] << 8) | mbap[5];
 
             // The total frame length is the 7 bytes MBAP header + the length in MBAP (following Unit Identifier)
             request.resize(length);// Resize request to fit the full frame (MBAP + Modbus request)
             conn->readExact(request);
 
-            request.insert(request.begin(), header.begin(), header.end());
+            request.insert(request.begin(), mbap.begin(), mbap.end());
             processRequest(*conn, request, *register_);
         }
     }

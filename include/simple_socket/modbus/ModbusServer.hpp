@@ -16,6 +16,8 @@ namespace simple_socket {
 
         ModbusServer(const ModbusServer&) = delete;
         ModbusServer& operator=(const ModbusServer&) = delete;
+        ModbusServer(ModbusServer&&) = delete;
+        ModbusServer& operator=(ModbusServer&&) = delete;
 
         void start();
 

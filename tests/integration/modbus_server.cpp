@@ -6,7 +6,8 @@ using namespace simple_socket;
 int main() {
 
     HoldingRegister holding_register(5);
-    holding_register.setUint16(0, 1);
+
+    holding_register.setUint16(0, 8);
     holding_register.setFloat(1, 2.5);
     holding_register.setUint32(3, 11311111);
 
@@ -14,7 +15,6 @@ int main() {
     server.start();
 
     do {
-        std::cout << '\n'
-                  << "Press a key to continue...";
+        std::cout << "Press a key to continue..." << std::endl;
     } while (std::cin.get() != '\n');
 }

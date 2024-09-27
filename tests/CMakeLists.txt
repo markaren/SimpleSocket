@@ -15,6 +15,10 @@ add_executable(test_conversion test_conversion.cpp)
 add_test(NAME test_conversion COMMAND test_conversion)
 target_link_libraries(test_conversion PRIVATE simple_socket Catch2::Catch2WithMain)
 
+add_executable(test_modbus test_modbus.cpp)
+add_test(NAME test_modbus COMMAND test_conversion)
+target_link_libraries(test_modbus PRIVATE simple_socket Catch2::Catch2WithMain)
+
 if (WIN32)
     add_executable(test_pipe test_pipe.cpp)
     add_test(NAME test_pipe COMMAND test_pipe)
