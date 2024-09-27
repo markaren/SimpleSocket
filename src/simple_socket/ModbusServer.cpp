@@ -5,6 +5,7 @@
 #include "simple_socket/modbus/HoldingRegister.hpp"
 
 #include <array>
+#include <iostream>
 #include <thread>
 
 using namespace simple_socket;

@@ -22,6 +22,7 @@ set(privateHeaders
 )
 
 set(sources
+        "simple_socket/HoldingRegister.cpp"
         "simple_socket/port_query.cpp"
         "simple_socket/ModbusClient.cpp"
         "simple_socket/ModbusServer.cpp"

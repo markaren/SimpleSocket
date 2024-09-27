@@ -1,6 +1,8 @@
 
 #include "simple_socket/modbus/ModbusServer.hpp"
 
+#include <iostream>
+
 using namespace simple_socket;
 
 int main() {
