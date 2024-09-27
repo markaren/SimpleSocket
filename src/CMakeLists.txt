@@ -10,8 +10,10 @@ set(publicHeaders
         "simple_socket/UnixDomainSocket.hpp"
         "simple_socket/WebSocket.hpp"
 
+        "simple_socket/modbus/HoldingRegister.hpp"
         "simple_socket/modbus/ModbusClient.hpp"
         "simple_socket/modbus/modbus_helper.hpp"
+        "simple_socket/modbus/ModbusServer.hpp"
 )
 
 set(privateHeaders
@@ -22,6 +24,7 @@ set(privateHeaders
 set(sources
         "simple_socket/port_query.cpp"
         "simple_socket/ModbusClient.cpp"
+        "simple_socket/ModbusServer.cpp"
         "simple_socket/Socket.cpp"
         "simple_socket/UDPSocket.cpp"
         "simple_socket/WebSocket.cpp"

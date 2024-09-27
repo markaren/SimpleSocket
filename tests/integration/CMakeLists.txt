@@ -11,6 +11,10 @@ target_link_libraries(run_ws PRIVATE simple_socket)
 add_executable(modbus_client modbus_client.cpp)
 target_link_libraries(modbus_client PRIVATE simple_socket)
 
+add_executable(modbus_server modbus_server.cpp)
+target_link_libraries(modbus_server PRIVATE simple_socket)
+
+
 if (WIN32)
     add_executable(run_pipe_server run_pipe_server.cpp)
     target_link_libraries(run_pipe_server PRIVATE simple_socket)

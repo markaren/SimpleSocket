@@ -12,13 +12,15 @@ namespace {
     std::vector<uint8_t> makeRequest(uint16_t transactionID, uint8_t unitID, uint8_t functionCode, const std::vector<uint8_t>& data) {
         std::vector<uint8_t> request_;
         // MBAP Header
-        request_.resize(7 + 1 + data.size());     // 7 bytes MBAP + data size
+        request_.resize(7 + 1 + data.size());     // 7 bytes MBAP + 1 byte function code + data size
         request_[0] = (transactionID >> 8) & 0xFF;// Transaction ID High byte
         request_[1] = transactionID & 0xFF;       // Transaction ID Low byte
         request_[2] = 0x00;                       // Protocol ID (always 0 for Modbus TCP)
         request_[3] = 0x00;
-        request_[4] = (data.size() + 2) >> 8;// Length field (2 bytes: unitID + functionCode + data)
-        request_[5] = (data.size() + 2) & 0xFF;
+
+        const uint8_t length = data.size() + 2;
+        request_[4] = length >> 8;// Length field (2 bytes: unitID + functionCode + data)
+        request_[5] = length & 0xFF;
         request_[6] = unitID;// Unit ID
 
         // Modbus PDU (Protocol Data Unit)
@@ -29,7 +31,6 @@ namespace {
 
         return request_;
     }
-
 
     // Parse the response for reading registers
     std::vector<uint16_t> parse_registers_response(const std::vector<uint8_t>& response, uint16_t count) {
@@ -80,10 +81,10 @@ struct ModbusClient::Impl {
 
     std::vector<uint16_t> read_holding_registers(uint16_t address, uint16_t count, uint8_t unit_id) {
         std::vector request_data{
-                static_cast<unsigned char>((address >> 8) & 0xFF),// High byte of address
-                static_cast<unsigned char>(address & 0xFF),       // Low byte of address
-                static_cast<unsigned char>((count >> 8) & 0xFF),  // High byte of count
-                static_cast<unsigned char>(count & 0xFF)          // Low byte of count
+                static_cast<uint8_t>((address >> 8) & 0xFF),// High byte of address
+                static_cast<uint8_t>(address & 0xFF),       // Low byte of address
+                static_cast<uint8_t>((count >> 8) & 0xFF),  // High byte of count
+                static_cast<uint8_t>(count & 0xFF)          // Low byte of count
         };
         const auto request = makeRequest(next_transaction_id_++, unit_id, 0x03, request_data);// 0x03 is function code for reading holding registers
 
@@ -109,10 +110,10 @@ struct ModbusClient::Impl {
     bool write_single_register(uint16_t address, uint16_t value, uint8_t unitID) {
         // Construct the data part (address + value) for the Modbus PDU
         std::vector data{
-                static_cast<unsigned char>((address >> 8) & 0xFF),// High byte of the address
-                static_cast<unsigned char>(address & 0xFF),       // Low byte of the address
-                static_cast<unsigned char>((value >> 8) & 0xFF),  // High byte of the value
-                static_cast<unsigned char>(value & 0xFF)          // Low byte of the value
+                static_cast<uint8_t>((address >> 8) & 0xFF),// High byte of the address
+                static_cast<uint8_t>(address & 0xFF),       // Low byte of the address
+                static_cast<uint8_t>((value >> 8) & 0xFF),  // High byte of the value
+                static_cast<uint8_t>(value & 0xFF)          // Low byte of the value
         };
 
         // Create the Modbus request
@@ -131,17 +132,17 @@ struct ModbusClient::Impl {
     bool write_multiple_registers(uint16_t address, const uint16_t* values, size_t size, uint8_t unitID) {
         // Construct the data part for the Modbus PDU: address, number of registers, and values
         std::vector data {
-                static_cast<unsigned char>((address >> 8) & 0xFF),      // High byte of the address
-                static_cast<unsigned char>(address & 0xFF),             // Low byte of the address
-                static_cast<unsigned char>((size >> 8) & 0xFF),// High byte of number of registers
-                static_cast<unsigned char>(size & 0xFF),       // Low byte of number of registers
-                static_cast<unsigned char>(size * 2)           // Byte count (2 bytes per register)
+                static_cast<uint8_t>((address >> 8) & 0xFF),      // High byte of the address
+                static_cast<uint8_t>(address & 0xFF),             // Low byte of the address
+                static_cast<uint8_t>((size >> 8) & 0xFF),// High byte of number of registers
+                static_cast<uint8_t>(size & 0xFF),       // Low byte of number of registers
+                static_cast<uint8_t>(size * 2)           // Byte count (2 bytes per register)
         };
 
         // Append register values (each register is 2 bytes)
         for (unsigned i = 0; i < size; ++i) {
-            data.emplace_back(static_cast<unsigned char>((values[i] >> 8) & 0xFF));// High byte of value
-            data.emplace_back(static_cast<unsigned char>(values[i] & 0xFF));       // Low byte of value
+            data.emplace_back(static_cast<uint8_t>((values[i] >> 8) & 0xFF));// High byte of value
+            data.emplace_back(static_cast<uint8_t>(values[i] & 0xFF));       // Low byte of value
         }
 
         // Create the Modbus request
