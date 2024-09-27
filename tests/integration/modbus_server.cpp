@@ -16,7 +16,20 @@ int main() {
     ModbusServer server(holding_register, 502);
     server.start();
 
-    do {
-        std::cout << "Press a key to continue..." << std::endl;
-    } while (std::cin.get() != '\n');
+    std::atomic_bool stop{false};
+    std::thread t([&] {
+        while (!stop) {
+            holding_register.setUint16(0, holding_register.getUint16(0)+1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    });
+
+
+    std::cout << "Press a key to continue..." << std::endl;
+    std::cin.get();
+
+    server.stop();
+    stop = true;
+
+    if (t.joinable()) t.join();
 }

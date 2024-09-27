@@ -35,15 +35,21 @@ namespace {
                     return;
                 }
 
-                // Prepare response: device address, function code, byte count
-                std::vector response(request.begin(), request.begin() + 8);
-                response.push_back(quantity * 2);// Byte count (2 bytes per register)
+                // Prepare response: MBAP header + PDU
+                std::vector response(request.begin(), request.begin()+4);
+                const uint16_t length = 3 + (quantity * 2); // Length of PDU
+                response.push_back(length >> 8); // Length (High)
+                response.push_back(length & 0xFF); // Length (Low)
+                response.push_back(request[6]); // Unit Identifier
 
+                // PDU
+                response.push_back(functionCode); // Function Code
+                response.push_back(quantity * 2);  // Byte Count
                 // Append register values to the response
                 for (uint16_t i = 0; i < quantity; ++i) {
                     const uint16_t regValue = reg.getUint16(startAddress + i);
                     response.push_back(regValue >> 8);  // High byte
-                    response.push_back(regValue & 0xFF);// Low byte
+                    response.push_back(regValue & 0xFF); // Low byte
                 }
 
                 // Send the response
