@@ -8,7 +8,7 @@ Supports:
 * TCP/IP
 * Unix Domain Sockets
 * WebSocket Server
-* Modbus client [TCP]
+* Modbus [TCP]
 * Pipes [windows]
 
 > NOT for use in production.
