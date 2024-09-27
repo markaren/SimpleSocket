@@ -66,7 +66,7 @@ struct ModbusServer::Impl {
         : server_(port), register_(&reg) {}
 
     void start() {
-        thread_ = std::jthread([this] {
+        thread_ = std::thread([this] {
             try {
                 while (!stop_) {
                     auto conn = server_.accept();
@@ -105,13 +105,20 @@ struct ModbusServer::Impl {
         }
     }
 
+    ~Impl() {
+        for (auto& client : clients_) {
+            if (client.joinable()) client.join();
+        }
+        if (thread_.joinable()) thread_.join();
+    }
+
 private:
     TCPServer server_;
     HoldingRegister* register_;
 
     std::atomic_bool stop_;
-    std::jthread thread_;
-    std::vector<std::jthread> clients_;
+    std::thread thread_;
+    std::vector<std::thread> clients_;
 };
 
 ModbusServer::ModbusServer(HoldingRegister& reg, uint16_t port)
