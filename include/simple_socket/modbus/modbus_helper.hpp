@@ -10,25 +10,25 @@
 namespace simple_socket {
 
     // Decode 32-bit unsigned integer (4 bytes)
-    inline uint32_t decode_uint32(const std::vector<uint16_t>& data) {
-        return (static_cast<uint32_t>(data[0]) << 16) |
-               static_cast<uint32_t>(data[1]);
+    inline uint32_t decode_uint32(const std::vector<uint16_t>& data, size_t offset = 0) {
+        return (static_cast<uint32_t>(data[offset + 0]) << 16) |
+               static_cast<uint32_t>(data[offset + 1]);
     }
 
     // Decode 32-bit unsigned integer (4 bytes)
-    inline std::string decode_text(const std::vector<uint16_t>& data) {
+    inline std::string decode_text(const std::vector<uint16_t>& data, size_t num, size_t offset = 0) {
         std::stringstream ss;
-        for (const auto& byte : data) {
-            const uint8_t high_byte = (byte >> 8) & 0xFF;// Get the upper 8 bits
-            const uint8_t low_byte = byte & 0xFF;
+        for (unsigned index = offset; index < offset + num; ++index) {
+            const uint8_t high_byte = (data[index] >> 8) & 0xFF;// Get the upper 8 bits
+            const uint8_t low_byte = data[index] & 0xFF;
             ss << high_byte << low_byte;
         }
         return ss.str();
     }
 
     // Decode IEEE 754 32-bit float (4 bytes)
-    inline float decode_float(const std::vector<uint16_t>& data) {
-        uint32_t raw_value = decode_uint32(data);
+    inline float decode_float(const std::vector<uint16_t>& data, size_t offset = 0) {
+        uint32_t raw_value = decode_uint32(data, offset);
         float decoded_value;
         std::memcpy(&decoded_value, &raw_value, sizeof(decoded_value));// Reinterpret the bits as float
         return decoded_value;
