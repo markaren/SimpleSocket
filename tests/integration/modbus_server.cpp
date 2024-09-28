@@ -1,7 +1,9 @@
 
 #include "simple_socket/modbus/ModbusServer.hpp"
 
+#include <atomic>
 #include <iostream>
+#include <thread>
 
 using namespace simple_socket;
 
@@ -19,8 +21,8 @@ int main() {
     std::atomic_bool stop{false};
     std::thread t([&] {
         while (!stop) {
-            holding_register.setUint16(0, holding_register.getUint16(0)+1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            holding_register.setUint16(0, holding_register.getUint16(0) + 1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     });
 
