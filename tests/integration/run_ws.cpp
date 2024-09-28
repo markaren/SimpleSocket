@@ -2,7 +2,6 @@
 #include "simple_socket/WebSocket.hpp"
 
 #include <iostream>
-#include <thread>
 
 using namespace simple_socket;
 

@@ -53,7 +53,7 @@ namespace simple_socket {
 
                 if (callbacks_.onClose) callbacks_.onClose(this);
 
-                if (!self) {
+                if (self) {
                     std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
                     closeFrame.push_back(0);
                     conn_->write(closeFrame);
