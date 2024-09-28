@@ -43,21 +43,20 @@ namespace simple_socket {
         std::unique_ptr<Impl> pimpl_;
     };
 
-    class WebsocketClient {
+    class WebSocketClient {
 
     public:
-
         std::function<void(WebSocketConnection*)> onOpen;
         std::function<void(WebSocketConnection*)> onClose;
         std::function<void(WebSocketConnection*, const std::string&)> onMessage;
 
-        WebsocketClient(const std::string& host, uint16_t port);
+        WebSocketClient();
 
-        void connect();
+        void connect(const std::string& host, uint16_t port);
 
         void close();
 
-        ~WebsocketClient();
+        ~WebSocketClient();
 
     private:
         struct Impl;

@@ -2,6 +2,7 @@
 #include "simple_socket/WebSocket.hpp"
 
 #include <iostream>
+#include <thread>
 
 using namespace simple_socket;
 
@@ -11,6 +12,7 @@ int main() {
     ws.start();
 
     ws.onOpen = [](auto c) {
+        c->send("Hello from server!");
         std::cout << "[" << c->uuid() << "] onOpen" << std::endl;
     };
     ws.onClose = [](auto c) {
