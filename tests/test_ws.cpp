@@ -60,10 +60,10 @@ TEST_CASE("test Websocket") {
     client.close();
     ws.stop();
 
-    CHECK(serverOpen == true);
-    CHECK(serverClose == true);
-    CHECK(clientOpen == true);
-    CHECK(clientClose == true);
+    CHECK(serverOpen.load());
+    CHECK(serverClose.load());
+    CHECK(clientOpen.load());
+    CHECK(clientClose.load());
 
     CHECK(servermsg == "Hello from client!");
     CHECK(clientmsg == "Hello from server!");
