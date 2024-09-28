@@ -22,7 +22,9 @@ int main() {
         c->send(msg);
     };
 
+#ifdef _WIN32
     system("start ws_client.html");
+#endif
 
     //wait for key press
     std::cout << "Press any key to stop server.." << std::endl;

@@ -55,7 +55,7 @@ TEST_CASE("test Websocket") {
     };
 
     client.connect("127.0.0.1", *port);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     client.close();
     ws.stop();
