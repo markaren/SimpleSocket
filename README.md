@@ -7,7 +7,7 @@ Supports:
 * UDP
 * TCP/IP
 * Unix Domain Sockets
-* WebSocket Server
+* WebSocket
 * Modbus [TCP]
 * Pipes [windows]
 
