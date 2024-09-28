@@ -7,8 +7,7 @@
 #include "simple_socket/ws/WebSocketConnection.hpp"
 #include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 
-#include <ostream>
-#include <thread>
+#include <sstream>
 
 using namespace simple_socket;
 
