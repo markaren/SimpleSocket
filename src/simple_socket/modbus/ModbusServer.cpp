@@ -36,28 +36,71 @@ namespace {
                 }
 
                 // Prepare response: MBAP header + PDU
-                std::vector response(request.begin(), request.begin()+4);
-                const uint16_t length = 3 + (quantity * 2); // Length of PDU
-                response.push_back(length >> 8); // Length (High)
-                response.push_back(length & 0xFF); // Length (Low)
-                response.push_back(request[6]); // Unit Identifier
+                std::vector response(request.begin(), request.begin() + 4);
+                const uint16_t length = 3 + (quantity * 2);// Length of PDU
+                response.push_back(length >> 8);           // Length (High)
+                response.push_back(length & 0xFF);         // Length (Low)
+                response.push_back(request[6]);            // Unit Identifier
 
                 // PDU
-                response.push_back(functionCode); // Function Code
-                response.push_back(quantity * 2);  // Byte Count
+                response.push_back(functionCode);// Function Code
+                response.push_back(quantity * 2);// Byte Count
                 // Append register values to the response
                 for (uint16_t i = 0; i < quantity; ++i) {
                     const uint16_t regValue = reg.getUint16(startAddress + i);
-                    response.push_back(regValue >> 8);  // High byte
-                    response.push_back(regValue & 0xFF); // Low byte
+                    response.push_back(regValue >> 8);
+                    response.push_back(regValue & 0xFF);
                 }
 
-                // Send the response
                 conn.write(response);
                 break;
             }
 
-                // Add support for other function codes (e.g., 0x06, 0x10)
+            case 0x06: {// Write Single Register
+                if (startAddress >= reg.size()) {
+                    sendException(conn, request[headerSize + 0], functionCode, 0x02);// Illegal Data Address
+                    return;
+                }
+
+                const uint16_t valueToWrite = (request[headerSize + 4] << 8) | request[headerSize + 5];
+                reg.setUint16(startAddress, valueToWrite);
+
+                // Echo back the same request as a confirmation
+                const std::vector response(request.begin(), request.end());
+                conn.write(response);
+                break;
+            }
+
+            case 0x10: {// Write Multiple Registers
+                // Extract start address and quantity of registers from the request
+                const uint16_t startAddress = (request[headerSize + 2] << 8) | request[headerSize + 3];
+                const uint16_t quantity = (request[headerSize + 4] << 8) | request[headerSize + 5];
+                const uint8_t byteCount = request[headerSize + 6];// Number of data bytes
+
+                // Check if the request is valid: the quantity of registers should not exceed the register size.
+                if (startAddress + quantity > reg.size() || byteCount != quantity * 2) {
+                    sendException(conn, request[headerSize + 0], functionCode, 0x02);// Illegal Data Address
+                    return;
+                }
+
+                // Write data to the registers
+                for (uint16_t i = 0; i < quantity; ++i) {
+                    uint16_t regValue = (request[headerSize + 7 + (i * 2)] << 8) | request[headerSize + 8 + (i * 2)];
+                    reg.setUint16(startAddress + i, regValue);// Write the value to the register
+                }
+
+                // Prepare response (Echo start address and quantity of registers written)
+                std::vector response(request.begin(), request.begin() + 6);// Copy MBAP header
+                response.push_back(request[headerSize + 1]);               // Unit Identifier
+                response.push_back(functionCode);                          // Function Code
+                response.push_back(startAddress >> 8);                     // Starting Address (High byte)
+                response.push_back(startAddress & 0xFF);                   // Starting Address (Low byte)
+                response.push_back(quantity >> 8);                         // Quantity of Registers (High byte)
+                response.push_back(quantity & 0xFF);                       // Quantity of Registers (Low byte)
+
+                conn.write(response);
+                break;
+            }
 
             default:
                 sendException(conn, request[0], functionCode, 0x01);// Illegal Function
