@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #include "simple_socket/WebSocket.hpp"
 
