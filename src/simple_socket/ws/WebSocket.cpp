@@ -1,5 +1,7 @@
 
 #include "simple_socket/WebSocket.hpp"
+
+#include "WebSocketHandshakeKeyGen.hpp"
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/socket_common.hpp"
 
@@ -11,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using namespace simple_socket;
@@ -204,7 +207,7 @@ struct WebSocket::Impl {
                 auto ws = std::make_unique<WebSocketConnectionImpl>(scope, socket.accept());
                 scope->onOpen(ws.get());
                 connections.emplace_back(std::move(ws));
-            } catch (std::exception& ex) {
+            } catch (std::exception&) {
                 // std::cerr << ex.what() << std::endl;
             }
 
@@ -222,8 +225,8 @@ struct WebSocket::Impl {
 
     void start() {
         thread = std::thread([this] {
-           run();
-       });
+            run();
+        });
     }
 
     void stop() {
@@ -266,3 +269,178 @@ void WebSocket::stop() {
 }
 
 WebSocket::~WebSocket() = default;
+
+struct WebsocketClient::Impl {
+
+    Impl(std::string host, uint16_t port)
+        : host_(std::move(host)), port_(port) {}
+
+    void connect() {
+
+        tcpSocket_ = ctx_.connect(host_, port_);
+        performHandshake();
+
+        listenerThread_ = std::thread([this] {
+            listen();
+        });
+    }
+
+    void send(const std::string& message) {
+        if (!connected_) {
+            std::cerr << "Not connected, unable to send message." << std::endl;
+            return;
+        }
+
+        const auto frame = createFrame(message);
+        if (!tcpSocket_->write(frame)) {
+            std::cerr << "Failed to send message." << std::endl;
+        }
+    }
+
+    void close() {
+        stop_ = true;
+        std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
+        closeFrame.push_back(0);
+        tcpSocket_->write(closeFrame);
+        tcpSocket_->close();
+
+        if (listenerThread_.joinable()) {
+            listenerThread_.join();
+        }
+    }
+
+    ~Impl() {
+        close();
+    }
+
+private:
+    TCPClientContext ctx_;
+    std::unique_ptr<SimpleConnection> tcpSocket_;
+    std::atomic_bool connected_;
+    std::atomic_bool stop_;
+    std::thread listenerThread_;
+
+    std::string host_;
+    uint16_t port_;
+
+    void performHandshake() {
+        const std::string key;
+        char output[28] = {};// 28 chars for base64-encoded output
+        WebSocketHandshakeKeyGen::generate(key, output);
+
+        std::ostringstream request;
+        request << "GET "
+                << "/ws"
+                << " HTTP/1.1\r\n"
+                << "Host: " << host_ << ":" << port_ << "\r\n"
+                << "Upgrade: websocket\r\n"
+                << "Connection: Upgrade\r\n"
+                << "Sec-WebSocket-Key: " << key << "\r\n"
+                << "Sec-WebSocket-Version: 13\r\n\r\n";
+
+        const std::string requestStr = request.str();
+        if (!tcpSocket_->write(requestStr)) {
+            throwSocketError("Failed to send handshake request");
+        }
+
+        std::vector<uint8_t> buffer(1024);
+        const auto bytesReceived = tcpSocket_->read(buffer);
+        if (bytesReceived == -1) {
+            throwSocketError("Failed to read handshake response from server.");
+        }
+
+        const std::string response(buffer.begin(), buffer.begin() + bytesReceived);
+        if (response.find(" 101 ") == std::string::npos) {
+            throwSocketError("Handshake failed with the server.");
+        }
+
+        connected_ = true;
+    }
+
+    void listen() {
+        std::vector<uint8_t> buffer(1024);
+
+        while (!stop_) {
+            const auto recv = tcpSocket_->read(buffer);
+            if (recv == -1) {
+                break;
+            }
+
+            std::vector<uint8_t> frame{buffer.begin(), buffer.begin() + recv};
+
+            if (frame.size() < 2) return;
+
+            uint8_t opcode = frame[0] & 0x0F;
+            bool isMasked = (frame[1] & 0x80) != 0;
+            uint64_t payloadLen = frame[1] & 0x7F;
+
+            size_t pos = 2;
+            if (payloadLen == 126) {
+                payloadLen = (frame[2] << 8) | frame[3];
+                pos += 2;
+            } else if (payloadLen == 127) {
+                payloadLen = 0;
+                for (int i = 0; i < 8; ++i) {
+                    payloadLen = (payloadLen << 8) | frame[2 + i];
+                }
+                pos += 8;
+            }
+
+            std::vector<uint8_t> mask(4);
+            if (isMasked) {
+                for (int i = 0; i < 4; ++i) {
+                    mask[i] = frame[pos++];
+                }
+            }
+
+            std::vector payload(frame.begin() + pos, frame.begin() + pos + payloadLen);
+            if (isMasked) {
+                for (size_t i = 0; i < payload.size(); ++i) {
+                    payload[i] ^= mask[i % 4];
+                }
+            }
+
+            switch (opcode) {
+                case 0x1:// Text frame
+                {
+                    std::string message(payload.begin(), payload.end());
+                    std::cout << "Received: " << message << std::endl;
+                } break;
+                case 0x8:// Close frame
+                    close();
+                    break;
+                case 0x9:// Ping frame
+                    std::cout << "Received ping frame" << std::endl;
+                    sendPong(payload);
+                    break;
+                case 0xA:// Pong frame
+                    std::cout << "Received pong frame" << std::endl;
+                    break;
+                default:
+                    std::cerr << "Unsupported opcode: " << static_cast<int>(opcode) << std::endl;
+                    break;
+            }
+        }
+    }
+
+    void sendPong(const std::vector<uint8_t>& payload) {
+        std::vector<uint8_t> pongFrame = {0x8A};// FIN, Pong frame
+        pongFrame.push_back(static_cast<uint8_t>(payload.size()));
+        pongFrame.insert(pongFrame.end(), payload.begin(), payload.end());
+        tcpSocket_->write(pongFrame);
+    }
+};
+
+WebsocketClient::WebsocketClient(const std::string& host, uint16_t port)
+    : pimpl_(std::make_unique<Impl>(host, port)) {}
+
+
+void WebsocketClient::connect() {
+    pimpl_->connect();
+}
+
+void WebsocketClient::close() {
+    pimpl_->close();
+}
+
+WebsocketClient::~WebsocketClient() = default;

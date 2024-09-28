@@ -23,6 +23,7 @@ set(privateHeaders
         "simple_socket/util/uuid.hpp"
 
         "simple_socket/ws/WebSocketHandshake.hpp"
+        "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 )
 
 set(sources
