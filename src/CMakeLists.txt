@@ -22,7 +22,9 @@ set(privateHeaders
         "simple_socket/Socket.hpp"
         "simple_socket/util/uuid.hpp"
 
+        "simple_socket/ws/WebSocketConnection.hpp"
         "simple_socket/ws/WebSocketHandshake.hpp"
+        "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 )
 
 set(sources
@@ -32,6 +34,7 @@ set(sources
         "simple_socket/UnixDomainSocket.cpp"
 
         "simple_socket/ws/WebSocket.cpp"
+        "simple_socket/ws/WebSocketClient.cpp"
 
         "simple_socket/modbus/HoldingRegister.cpp"
         "simple_socket/modbus/ModbusClient.cpp"

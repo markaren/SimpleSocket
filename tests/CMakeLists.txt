@@ -11,6 +11,10 @@ add_executable(test_un test_un.cpp)
 add_test(NAME test_un COMMAND test_un)
 target_link_libraries(test_un PRIVATE simple_socket Catch2::Catch2WithMain)
 
+add_executable(test_ws test_ws.cpp)
+add_test(NAME test_ws COMMAND test_ws)
+target_link_libraries(test_ws PRIVATE simple_socket Catch2::Catch2WithMain)
+
 add_executable(test_conversion test_conversion.cpp)
 add_test(NAME test_conversion COMMAND test_conversion)
 target_link_libraries(test_conversion PRIVATE simple_socket Catch2::Catch2WithMain)

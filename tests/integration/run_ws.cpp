@@ -11,6 +11,7 @@ int main() {
     ws.start();
 
     ws.onOpen = [](auto c) {
+        c->send("Hello from server!");
         std::cout << "[" << c->uuid() << "] onOpen" << std::endl;
     };
     ws.onClose = [](auto c) {
@@ -21,7 +22,9 @@ int main() {
         c->send(msg);
     };
 
+#ifdef _WIN32
     system("start ws_client.html");
+#endif
 
     //wait for key press
     std::cout << "Press any key to stop server.." << std::endl;
