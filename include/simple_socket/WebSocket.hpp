@@ -54,6 +54,8 @@ namespace simple_socket {
 
         void connect(const std::string& host, uint16_t port);
 
+        void send(const std::string& msg);
+
         void close();
 
         ~WebSocketClient();

@@ -56,7 +56,7 @@ struct WebSocketClient::Impl {
 
         auto c = ctx_.connect(host, port);
 
-        conn = std::make_unique<WebSocketConnectionImpl>(WebSocketCallbaks{scope_->onOpen, scope_->onClose, scope_->onMessage}, std::move(c));
+        conn = std::make_unique<WebSocketConnectionImpl>(WebSocketCallbacks{scope_->onOpen, scope_->onClose, scope_->onMessage}, std::move(c));
         conn->run([host, port](SimpleConnection& conn) {
             performHandshake(conn, host, port);
         });
@@ -85,6 +85,10 @@ WebSocketClient::WebSocketClient()
 
 void WebSocketClient::connect(const std::string& host, uint16_t port) {
     pimpl_->connect(host, port);
+}
+
+void WebSocketClient::send(const std::string& message) {
+    pimpl_->send(message);
 }
 
 void WebSocketClient::close() {

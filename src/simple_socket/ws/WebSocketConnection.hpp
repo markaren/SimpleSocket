@@ -1,6 +1,6 @@
 
-#ifndef SIMPLE_SOCKET_WEBSOCKETFRAME_HPP
-#define SIMPLE_SOCKET_WEBSOCKETFRAME_HPP
+#ifndef SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
+#define SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
 
 #include <cstdint>
 #include <iostream>
@@ -13,12 +13,12 @@
 
 namespace simple_socket {
 
-    struct WebSocketCallbaks {
+    struct WebSocketCallbacks {
         std::function<void(WebSocketConnection*)>& onOpen;
         std::function<void(WebSocketConnection*)>& onClose;
         std::function<void(WebSocketConnection*, const std::string&)>& onMessage;
 
-        WebSocketCallbaks(std::function<void(WebSocketConnection*)>& onOpen,
+        WebSocketCallbacks(std::function<void(WebSocketConnection*)>& onOpen,
                           std::function<void(WebSocketConnection*)>& onClose,
                           std::function<void(WebSocketConnection*,
                                              const std::string&)>& onMessage)
@@ -29,7 +29,7 @@ namespace simple_socket {
 
     struct WebSocketConnectionImpl: WebSocketConnection {
 
-        explicit WebSocketConnectionImpl(const WebSocketCallbaks& callbacks, std::unique_ptr<SimpleConnection> conn)
+        explicit WebSocketConnectionImpl(const WebSocketCallbacks& callbacks, std::unique_ptr<SimpleConnection> conn)
             : callbacks_(callbacks), conn_(std::move(conn)) {}
 
         void run(const std::function<void(SimpleConnection&)>& handshake) {
@@ -77,7 +77,7 @@ namespace simple_socket {
         std::atomic_bool closed_{false};
         WebSocket* socket_{};
         std::unique_ptr<SimpleConnection> conn_;
-        WebSocketCallbaks callbacks_;
+        WebSocketCallbacks callbacks_;
         std::thread thread_;
 
 
@@ -136,7 +136,6 @@ namespace simple_socket {
 
                         break;
                     case 0x9:// Ping frame
-                        std::cout << "Received ping frame" << std::endl;
                         {
                             std::vector<uint8_t> pongFrame = {0x8A};// FIN, Pong frame
                             pongFrame.push_back(static_cast<uint8_t>(payload.size()));
@@ -145,7 +144,6 @@ namespace simple_socket {
                         }
                         break;
                     case 0xA:// Pong frame
-                        std::cout << "Received pong frame" << std::endl;
                         break;
                     default:
                         std::cerr << "Unsupported opcode: " << static_cast<int>(opcode) << std::endl;
@@ -177,4 +175,4 @@ namespace simple_socket {
     };
 };// namespace simple_socket
 
-#endif//SIMPLE_SOCKET_WEBSOCKETFRAME_HPP
+#endif//SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
