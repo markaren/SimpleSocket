@@ -16,7 +16,7 @@ namespace simple_socket {
     }
 
     // Decode 64-bit unsigned integer (8 bytes)
-    inline uint32_t decode_uint64(const std::vector<uint16_t>& data, size_t offset = 0) {
+    inline uint64_t decode_uint64(const std::vector<uint16_t>& data, size_t offset = 0) {
         return (static_cast<uint64_t>(data[offset]) << 48) |
                (static_cast<uint64_t>(data[offset + 1]) << 32) |
                (static_cast<uint64_t>(data[offset + 2]) << 16) |
