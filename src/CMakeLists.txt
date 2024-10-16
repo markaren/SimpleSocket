@@ -6,6 +6,7 @@ set(publicHeaders
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
         "simple_socket/UnixDomainSocket.hpp"
+        "simple_socket/URLFetcher.hpp"
         "simple_socket/WebSocket.hpp"
 
         "simple_socket/modbus/HoldingRegister.hpp"
@@ -32,6 +33,7 @@ set(sources
         "simple_socket/TCPSocket.cpp"
         "simple_socket/UDPSocket.cpp"
         "simple_socket/UnixDomainSocket.cpp"
+        "simple_socket/URLFetcher.cpp"
 
         "simple_socket/ws/WebSocket.cpp"
         "simple_socket/ws/WebSocketClient.cpp"
