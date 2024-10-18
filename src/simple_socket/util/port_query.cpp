@@ -19,9 +19,6 @@ std::optional<uint16_t> simple_socket::getAvailablePort(uint16_t startPort, uint
         return -1;
     }
 
-    const int optval = 1;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
-
     sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;

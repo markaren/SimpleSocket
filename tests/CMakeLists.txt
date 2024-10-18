@@ -23,6 +23,10 @@ add_executable(test_modbus test_modbus.cpp)
 add_test(NAME test_modbus COMMAND test_conversion)
 target_link_libraries(test_modbus PRIVATE simple_socket Catch2::Catch2WithMain)
 
+add_executable(test_port_query test_port_query.cpp)
+add_test(NAME test_port_query COMMAND test_port_query)
+target_link_libraries(test_port_query PRIVATE simple_socket Catch2::Catch2WithMain)
+
 if (WIN32)
     add_executable(test_pipe test_pipe.cpp)
     add_test(NAME test_pipe COMMAND test_pipe)
