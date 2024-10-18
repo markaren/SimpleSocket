@@ -42,5 +42,5 @@ std::optional<uint16_t> simple_socket::getAvailablePort(uint16_t startPort, uint
 
     closeSocket(sockfd);
 
-    return -1;// No available port found
+    return std::nullopt;// No available port found
 }
