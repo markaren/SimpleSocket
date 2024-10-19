@@ -16,14 +16,14 @@ std::optional<uint16_t> simple_socket::getAvailablePort(uint16_t startPort, uint
 
     SOCKET sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == SOCKET_ERROR) {
-        return -1;
+        return std::nullopt;
     }
 
     sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-    for (int port = startPort; port <= endPort; ++port) {
+    for (uint16_t port = startPort; port <= endPort; ++port) {
 
         if (std::ranges::find(excludePorts, port) != excludePorts.end()) {
             continue;
