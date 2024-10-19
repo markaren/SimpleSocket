@@ -13,8 +13,8 @@ namespace {
             throwSocketError("Failed to create socket");
         }
 
-        const int optval = 1;
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
+        // const int optval = 1;
+        // setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
 
         return sockfd;
     }
