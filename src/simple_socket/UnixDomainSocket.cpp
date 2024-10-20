@@ -32,7 +32,7 @@ namespace {
 struct UnixDomainServer::Impl {
 
     explicit Impl(const std::string& domain, int backlog)
-        : socket(createSocket()) {
+        : socket(createSocket()), domain(domain) {
 
         unlinkPath(domain);
 
@@ -68,12 +68,17 @@ struct UnixDomainServer::Impl {
         socket.close();
     }
 
+    ~Impl() {
+        unlinkPath(domain);
+    }
+
 private:
 #ifdef _WIN32
     WSASession session;
 #endif
 
     Socket socket;
+    std::string domain;
 };
 
 
