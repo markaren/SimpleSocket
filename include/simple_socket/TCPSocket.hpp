@@ -2,7 +2,7 @@
 #ifndef SIMPLE_SOCKET_TCPSOCKET_HPP
 #define SIMPLE_SOCKET_TCPSOCKET_HPP
 
-#include "simple_socket/SimpleConnection.hpp"
+#include "simple_socket/SocketContext.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -10,22 +10,11 @@
 
 namespace simple_socket {
 
-    class TCPClientContext {
+    class TCPClientContext: public SocketContext {
     public:
-        TCPClientContext();
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port);
 
-        TCPClientContext(const TCPClientContext& other) = delete;
-        TCPClientContext& operator=(const TCPClientContext& other) = delete;
-        TCPClientContext(TCPClientContext&& other) = delete;
-        TCPClientContext& operator=(TCPClientContext&& other) = delete;
-
-        std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port);
-
-        ~TCPClientContext();
-
-    private:
-        struct Impl;
-        std::unique_ptr<Impl> pimpl_;
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& host) override;
     };
 
     class TCPServer {

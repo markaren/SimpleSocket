@@ -45,32 +45,48 @@ TEST_CASE("TCP read/write") {
     TCPServer server(*port);
 
     std::thread serverThread([&server] {
-        std::unique_ptr<SimpleConnection> conn;
-        REQUIRE_NOTHROW(conn = server.accept());
-        socketHandler(std::move(conn));
+        try {
+            while (true) {
+                std::unique_ptr<SimpleConnection> conn = server.accept();
+                socketHandler(std::move(conn));
+            }
+        } catch (std::exception&) {}
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::thread clientThread([port] {
-        TCPClientContext client;
-        const auto conn = client.connect("127.0.0.1", *port);
-        REQUIRE(conn);
-
+    auto msgHandler = [](SimpleConnection& conn) {
         std::string message = generateMessage();
         std::string expectedResponse = generateResponse(message);
 
-        conn->write(message);
+        conn.write(message);
 
         std::vector<unsigned char> buffer(1024);
-        const auto bytesRead = conn->read(buffer);
+        const auto bytesRead = conn.read(buffer);
         REQUIRE(bytesRead == expectedResponse.size());
         std::string response(buffer.begin(), buffer.begin() + bytesRead);
 
         CHECK(response == expectedResponse);
+    };
+
+    TCPClientContext clientCtx;
+    std::thread clientThread1([&clientCtx, port, msgHandler] {
+
+        const auto conn = clientCtx.connect("127.0.0.1", *port);
+        REQUIRE(conn);
+
+        msgHandler(*conn);
     });
 
-    clientThread.join();
+    std::thread clientThread2([&clientCtx, port, msgHandler] {
+        const auto conn = clientCtx.connect("127.0.0.1:" + std::to_string(*port));
+        REQUIRE(conn);
+
+       msgHandler(*conn);
+    });
+
+    clientThread1.join();
+    clientThread2.join();
 
     server.close();
     serverThread.join();

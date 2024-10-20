@@ -19,15 +19,27 @@ namespace {
         return sockfd;
     }
 
+    std::pair<std::string, uint16_t> parseHostPort(const std::string& input) {
+        const size_t colonPos = input.find(':');
+        if (colonPos == std::string::npos) {
+            throw std::invalid_argument("Invalid input format. Expected 'host:port'.");
+        }
+
+        std::string host = input.substr(0, colonPos);
+        std::string portStr = input.substr(colonPos + 1);
+
+        // Convert port string to uint16_t
+        uint16_t port;
+        try {
+            port = static_cast<uint16_t>(std::stoi(portStr));
+        } catch (const std::exception&) {
+            throw std::invalid_argument("Invalid port number.");
+        }
+
+        return std::make_pair(host, port);
+    }
+
 }// namespace
-
-
-struct TCPClientContext::Impl {
-
-#ifdef _WIN32
-    WSASession session;
-#endif
-};
 
 
 struct TCPServer::Impl {
@@ -93,9 +105,6 @@ void TCPServer::close() {
 TCPServer::~TCPServer() = default;
 
 
-TCPClientContext::TCPClientContext()
-    : pimpl_(std::make_unique<Impl>()) {}
-
 [[nodiscard]] std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& ip, uint16_t port) {
 
     SOCKET sock = createSocket();
@@ -116,4 +125,7 @@ TCPClientContext::TCPClientContext()
     return nullptr;
 }
 
-TCPClientContext::~TCPClientContext() = default;
+std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& host) {
+    const auto [ip, port] = parseHostPort(host);
+    return connect(ip, port);
+}

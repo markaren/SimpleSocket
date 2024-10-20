@@ -2,24 +2,16 @@
 #ifndef SIMPLE_SOCKET_UNIXDOMAINSOCKET_HPP
 #define SIMPLE_SOCKET_UNIXDOMAINSOCKET_HPP
 
-#include "simple_socket/SimpleConnection.hpp"
+#include "simple_socket/SocketContext.hpp"
 
 #include <memory>
 #include <string>
 
 namespace simple_socket {
 
-    class UnixDomainClientContext {
+    class UnixDomainClientContext: public SocketContext {
     public:
-        UnixDomainClientContext();
-
-        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& domain);
-
-        ~UnixDomainClientContext();
-
-    private:
-        struct Impl;
-        std::unique_ptr<Impl> pimpl_;
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& domain) override;
     };
 
     class UnixDomainServer {

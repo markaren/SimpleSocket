@@ -17,6 +17,7 @@ namespace {
 
         return sockfd;
     }
+
     void unlinkPath(const std::string& path) {
 #ifdef _WIN32
         DeleteFile(path.c_str());
@@ -91,16 +92,6 @@ std::unique_ptr<SimpleConnection> UnixDomainServer::accept() {
 
 UnixDomainServer::~UnixDomainServer() = default;
 
-struct UnixDomainClientContext::Impl {
-
-#ifdef _WIN32
-    WSASession session;
-#endif
-};
-
-UnixDomainClientContext::UnixDomainClientContext()
-    : pimpl_(std::make_unique<Impl>()) {}
-
 
 std::unique_ptr<SimpleConnection> UnixDomainClientContext::connect(const std::string& domain) {
 
@@ -117,5 +108,3 @@ std::unique_ptr<SimpleConnection> UnixDomainClientContext::connect(const std::st
 
     return nullptr;
 }
-
-UnixDomainClientContext::~UnixDomainClientContext() = default;
