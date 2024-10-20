@@ -1,7 +1,9 @@
 
 #include "simple_socket/SocketContext.hpp"
 
+#ifdef _WIN32
 #include "WSASession.hpp"
+#endif
 
 using namespace simple_socket;
 
