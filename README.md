@@ -11,8 +11,6 @@ Supports:
 * Modbus [TCP]
 * Pipes [windows]
 
-> NOT for use in production.
-
 
 ### Downstream usage with CMake FetchContent
 ```cmake
