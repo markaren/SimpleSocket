@@ -70,7 +70,7 @@ if (UNIX)
     set_target_properties(simple_socket PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif ()
 if (WIN32)
-    target_link_libraries(simple_socket "ws2_32")
+    target_link_libraries(simple_socket INTERFACE "ws2_32")
 endif ()
 
 target_include_directories(simple_socket
