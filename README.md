@@ -9,7 +9,6 @@ Supports:
 * Unix Domain Sockets
 * WebSocket
 * Modbus [TCP]
-* Pipes [windows]
 
 
 ### Downstream usage with CMake FetchContent

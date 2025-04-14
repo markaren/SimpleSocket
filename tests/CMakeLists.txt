@@ -27,12 +27,6 @@ add_executable(test_port_query test_port_query.cpp)
 add_test(NAME test_port_query COMMAND test_port_query)
 target_link_libraries(test_port_query PRIVATE simple_socket Catch2::Catch2WithMain)
 
-if (WIN32)
-    add_executable(test_pipe test_pipe.cpp)
-    add_test(NAME test_pipe COMMAND test_pipe)
-    target_link_libraries(test_pipe PRIVATE simple_socket Catch2::Catch2WithMain)
-endif ()
-
 if (UNIX)
     target_link_libraries(test_tcp PRIVATE pthread)
     target_link_libraries(test_udp PRIVATE pthread)

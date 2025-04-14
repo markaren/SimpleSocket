@@ -43,21 +43,6 @@ set(sources
         "simple_socket/modbus/ModbusServer.cpp"
 )
 
-if (WIN32)
-    list(APPEND publicHeaders
-            "simple_socket/Pipe.hpp"
-    )
-
-    list(APPEND privateHeaders
-            "simple_socket/WSASession.hpp"
-    )
-
-    list(APPEND sources
-            "simple_socket/Pipe.cpp"
-    )
-endif ()
-
-
 set(publicHeadersFull)
 foreach (header IN LISTS publicHeaders)
     list(APPEND publicHeadersFull "${publicHeaderDir}/${header}")
