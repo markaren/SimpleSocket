@@ -2,6 +2,7 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
 
+        "simple_socket/SharedMemoryConnection.hpp"
         "simple_socket/SimpleConnection.hpp"
         "simple_socket/SocketContext.hpp"
         "simple_socket/TCPSocket.hpp"
@@ -29,7 +30,7 @@ set(privateHeaders
 )
 
 set(sources
-        "simple_socket/util/port_query.cpp"
+        "simple_socket/SharedMemoryConnection.cpp"
         "simple_socket/SocketContext.cpp"
         "simple_socket/TCPSocket.cpp"
         "simple_socket/UDPSocket.cpp"
@@ -41,6 +42,8 @@ set(sources
         "simple_socket/modbus/HoldingRegister.cpp"
         "simple_socket/modbus/ModbusClient.cpp"
         "simple_socket/modbus/ModbusServer.cpp"
+
+        "simple_socket/util/port_query.cpp"
 )
 
 set(publicHeadersFull)
