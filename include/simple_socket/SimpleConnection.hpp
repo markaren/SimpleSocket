@@ -2,8 +2,8 @@
 #ifndef SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
 #define SIMPLE_SOCKET_SIMPLE_CONNECTION_HPP
 
-#include <cstddef>
 #include <cstdint>
+#include <ranges>
 
 namespace simple_socket {
 
@@ -14,16 +14,19 @@ namespace simple_socket {
         virtual bool write(const uint8_t* data, size_t size) = 0;
 
         template<class Container>
+            requires std::ranges::contiguous_range<Container>
         int read(Container& buffer) {
             return read(buffer.data(), buffer.size());
         }
 
         template<class Container>
+            requires std::ranges::contiguous_range<Container>
         bool readExact(Container& buffer) {
             return readExact(buffer.data(), buffer.size());
         }
 
         template<class Container>
+            requires std::ranges::contiguous_range<Container>
         bool write(const Container& data) {
             return write(data.data(), data.size());
         }
@@ -34,7 +37,9 @@ namespace simple_socket {
 
         template<size_t N>
         bool write(const char (&data)[N]) {
-            return write(reinterpret_cast<const uint8_t*>(data), N - 1);// N - 1 to exclude null terminator if it's a C-string
+            static_assert(N > 0, "Array size must be greater than 0");
+            const size_t length = (data[N - 1] == '\0') ? N - 1 : N;
+            return write(reinterpret_cast<const uint8_t*>(data), length);
         }
 
         virtual void close() = 0;

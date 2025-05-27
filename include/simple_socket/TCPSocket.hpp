@@ -4,7 +4,6 @@
 
 #include "simple_socket/SocketContext.hpp"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
