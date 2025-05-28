@@ -98,10 +98,10 @@ TEST_CASE("Shared Memory readExact/write") {
 }
 
 TEST_CASE("Shared Memory large data transfer") {
-    const size_t largeSize = bufferSize - 100;// Litt mindre enn buffer for å være sikker
+    const size_t largeSize = bufferSize - 100;// leave some space for control data
     std::vector<uint8_t> largeData(largeSize);
 
-    // Fyll med testdata
+    // fill with testdata
     for (size_t i = 0; i < largeSize; ++i) {
         largeData[i] = static_cast<uint8_t>(i % 256);
     }
