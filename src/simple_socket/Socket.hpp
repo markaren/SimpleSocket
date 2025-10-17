@@ -157,7 +157,7 @@ namespace simple_socket {
         }
 
         ~TLSConnection() override {
-            close();
+            TLSConnection::close();
         }
 
     private:
