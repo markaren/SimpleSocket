@@ -10,6 +10,10 @@
 #include <openssl/ssl.h>
 #endif
 
+// #ifndef _WIN32
+// #include <fcntl.h>
+// #endif
+
 
 namespace simple_socket {
 
@@ -72,20 +76,65 @@ namespace simple_socket {
     };
 
 #ifdef SIMPLE_SOCKET_WITH_TLS
+
+
+//     // Helper: put socket into non-blocking mode
+//     inline void set_nonblocking(SOCKET s) {
+// #ifdef _WIN32
+//         u_long mode = 1;
+//         ioctlsocket(s, FIONBIO, &mode);
+// #else
+//         int flags = fcntl(s, F_GETFL, 0);
+//         if (flags >= 0) fcntl(s, F_SETFL, flags | O_NONBLOCK);
+// #endif
+//     }
+
+
     class TLSConnection: public SimpleConnection {
     public:
         TLSConnection(SOCKET sock, SSL* ssl, SSL_CTX* ctx = nullptr)
-            : sockfd_(sock), ssl_(ssl), ctx_(ctx) {}
+            : sockfd_(sock), ssl_(ssl), ctx_(ctx) {
+
+            // set_nonblocking(sockfd_);
+            // // Ensure AUTO_RETRY is off for non-blocking semantics
+            // SSL_clear_mode(ssl_, SSL_MODE_AUTO_RETRY);
+        }
 
 
         bool write(const uint8_t* buf, size_t len) override {
-            const auto written = SSL_write(ssl_, buf, static_cast<int>(len));
-            return written > 0;
+            if (!ssl_) return false;
+
+            size_t total = 0;
+            while (total < len) {
+                const int n = SSL_write(ssl_, buf + total, static_cast<int>(len - total));
+                if (n > 0) {
+                    total += static_cast<size_t>(n);
+                    continue;
+                }
+                const int err = SSL_get_error(ssl_, n);
+                if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                    continue; // retry
+                }
+                return false; // fatal
+            }
+            return true;
         }
 
         int read(uint8_t* buf, size_t len) override {
-            const auto read = SSL_read(ssl_, buf, static_cast<int>(len));
-            return (read > 0) ? read : -1;
+            if (!ssl_) return -1;
+
+            for (;;) {
+                const int n = SSL_read(ssl_, buf, static_cast<int>(len));
+                if (n > 0) return n;
+
+                const int err = SSL_get_error(ssl_, n);
+                if (err == SSL_ERROR_ZERO_RETURN) return 0; // clean TLS shutdown
+                if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                    // retry until caller cancels via close()
+                    continue;
+                }
+                return -1; // fatal
+            }
         }
 
         bool readExact(uint8_t* buffer, size_t size) override {
@@ -105,7 +154,6 @@ namespace simple_socket {
                 SSL_CTX_free(ctx_);
                 ctx_ = nullptr;
             }
-
         }
 
         ~TLSConnection() override {

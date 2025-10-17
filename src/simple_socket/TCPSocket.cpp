@@ -214,7 +214,7 @@ TCPServer::~TCPServer() = default;
             ERR_print_errors_fp(stderr);
             SSL_free(ssl);
             SSL_CTX_free(ctx);
-            ::closesocket(sock);
+            closeSocket(sock);
             return nullptr;
         }
         return std::make_unique<TLSConnection>(sock, ssl, ctx);

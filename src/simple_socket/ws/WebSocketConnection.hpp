@@ -5,10 +5,11 @@
 #include <atomic>
 #include <cstdint>
 #include <iostream>
+#include <mutex>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
-#include <random>
 
 #include "simple_socket/WebSocket.hpp"
 
@@ -47,23 +48,29 @@ namespace simple_socket {
 
         void send(const std::string& message) override {
             const auto frame = createFrame(message);
+            std::lock_guard<std::mutex> lg(tx_mtx_);
             conn_->write(frame);
         }
 
-        void close(bool self) {
-            if (!closed_) {
-                closed_ = true;
+        void close(bool byClient) {
+            if (!closed_.exchange(true)) {
 
                 if (callbacks_.onClose) {
                     callbacks_.onClose(this);
                 }
 
-                if (self) {
-                    std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
-                    closeFrame.push_back(0);
+                if (byClient) {
+                    // Best-effort close frame (no locks that can invert with TLS)
+                    std::vector<uint8_t> closeFrame = {0x88, 0x00};
+                    std::lock_guard<std::mutex> lg(tx_mtx_);
                     conn_->write(closeFrame);
                 }
-                conn_->close();
+
+                // Avoid joining from within the listener thread
+                if (thread_.joinable() && std::this_thread::get_id() != thread_.get_id())
+                    thread_.join();
+
+                if (callbacks_.onClose) callbacks_.onClose(this);
             }
         }
 
@@ -79,6 +86,7 @@ namespace simple_socket {
         }
 
     private:
+        std::mutex tx_mtx_; // serialize writes only
         std::atomic_bool closed_{false};
         WebSocket* socket_{};
         std::unique_ptr<SimpleConnection> conn_;
@@ -91,7 +99,7 @@ namespace simple_socket {
             while (!closed_) {
 
                 const auto recv = conn_->read(buffer);
-                if (recv == -1) {
+                if (recv <= 0) {
                     break;
                 }
 
@@ -116,7 +124,7 @@ namespace simple_socket {
                     pos += 8;
                 }
 
-                std::vector<uint8_t> mask(4);
+                static std::vector<uint8_t> mask(4);
                 if (isMasked) {
                     for (int i = 0; i < 4; ++i) {
                         mask[i] = frame[pos++];
@@ -158,10 +166,10 @@ namespace simple_socket {
 
         static std::vector<uint8_t> createFrame(const std::string& message) {
             std::vector<uint8_t> frame;
-            frame.push_back(0x81); // FIN, text frame
+            frame.push_back(0x81);// FIN, text frame
 
             size_t payloadLen = message.size();
-            uint8_t maskBit = 0x80; // Mask bit set
+            uint8_t maskBit = 0x80;// Mask bit set
 
             if (payloadLen <= 125) {
                 frame.push_back(static_cast<uint8_t>(payloadLen) | maskBit);
@@ -178,7 +186,7 @@ namespace simple_socket {
 
             // Generate random mask
             uint8_t mask[4];
-            std::random_device rd;
+            static std::random_device rd;
             for (int i = 0; i < 4; ++i) mask[i] = rd();
 
             frame.insert(frame.end(), mask, mask + 4);

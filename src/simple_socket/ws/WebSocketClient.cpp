@@ -1,4 +1,5 @@
 
+
 #include "simple_socket/WebSocket.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
@@ -102,6 +103,7 @@ struct WebSocketClient::Impl {
     }
 
     void send(const std::string& message) {
+
         conn->send(message);
     }
 
