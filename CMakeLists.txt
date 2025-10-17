@@ -31,6 +31,7 @@ endif ()
 configure_package_config_file(cmake/config.cmake.in
         "${CMAKE_CURRENT_BINARY_DIR}/simple_socket-config.cmake"
         INSTALL_DESTINATION "${CMAKE_INSTALL_DATADIR}/simple_socket"
+        PATH_VARS SIMPLE_SOCKET_WITH_TLS
         NO_SET_AND_CHECK_MACRO)
 write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/simple_socket-config-version.cmake"
