@@ -9,6 +9,13 @@
 #include <openssl/ssl.h>
 #endif
 
+#ifdef _WIN32
+#include <ws2def.h>
+#else
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
+
 
 using namespace simple_socket;
 
@@ -96,7 +103,7 @@ struct TCPServer::Impl {
             if (SSL_accept(ssl) <= 0) {
                 ERR_print_errors_fp(stderr);
                 SSL_free(ssl);
-                ::closesocket(new_sock);
+                closeSocket(new_sock);
                 throw std::runtime_error("TLS handshake failed");
             }
 
@@ -180,7 +187,7 @@ TCPServer::~TCPServer() = default;
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
         if (getaddrinfo(ip.c_str(), nullptr, &hints, &res) != 0 || !res) {
-            ::closesocket(sock);
+            closeSocket(sock);
             return nullptr;
         }
         serv_addr.sin_addr = reinterpret_cast<sockaddr_in*>(res->ai_addr)->sin_addr;
