@@ -5,6 +5,12 @@
 #include "simple_socket/SimpleConnection.hpp"
 #include "simple_socket/socket_common.hpp"
 
+#ifdef SIMPLE_SOCKET_WITH_TLS
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#endif
+
+
 namespace simple_socket {
 
     struct Socket: SimpleConnection {
@@ -64,6 +70,53 @@ namespace simple_socket {
 
         SOCKET sockfd_;
     };
+
+#ifdef SIMPLE_SOCKET_WITH_TLS
+    class TLSConnection: public SimpleConnection {
+    public:
+        TLSConnection(SOCKET sock, SSL* ssl): sockfd_(sock), ssl_(ssl) {}
+
+
+        bool write(const uint8_t* buf, size_t len) override {
+            const auto written = SSL_write(ssl_, buf, static_cast<int>(len));
+            return written > 0;
+        }
+
+        int read(uint8_t* buf, size_t len) override {
+            const auto read = SSL_read(ssl_, buf, static_cast<int>(len));
+            return (read > 0) ? read : -1;
+        }
+
+        bool readExact(uint8_t* buffer, size_t size) override {
+            size_t totalBytesReceived = 0;
+            while (totalBytesReceived < size) {
+                const int read = SSL_read(ssl_, buffer + totalBytesReceived,
+                                          static_cast<int>(size - totalBytesReceived));
+                if (read <= 0)
+                    return false;
+                totalBytesReceived += read;
+            }
+            return totalBytesReceived == size;
+        }
+
+        void close() override {
+            if (ssl_) {
+                SSL_shutdown(ssl_);
+                SSL_free(ssl_);
+                ssl_ = nullptr;
+            }
+            closeSocket(sockfd_);
+        }
+
+        ~TLSConnection() override {
+            close();
+        }
+
+    private:
+        SOCKET sockfd_;
+        SSL* ssl_;
+    };
+#endif
 
 }// namespace simple_socket
 

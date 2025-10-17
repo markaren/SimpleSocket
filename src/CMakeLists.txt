@@ -58,7 +58,12 @@ if (UNIX)
     set_target_properties(simple_socket PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif ()
 if (WIN32)
-    target_link_libraries(simple_socket "ws2_32")
+    target_link_libraries(simple_socket PRIVATE "ws2_32")
+endif ()
+
+if (SIMPLE_SOCKET_WITH_TLS)
+    target_compile_definitions(simple_socket PRIVATE SIMPLE_SOCKET_WITH_TLS=1)
+    target_link_libraries(simple_socket PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 endif ()
 
 target_include_directories(simple_socket
