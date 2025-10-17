@@ -8,6 +8,9 @@ target_link_libraries(run_tcp_client PRIVATE simple_socket)
 add_executable(run_ws run_ws.cpp)
 target_link_libraries(run_ws PRIVATE simple_socket)
 
+add_executable(run_wss run_wss.cpp)
+target_link_libraries(run_wss PRIVATE simple_socket)
+
 add_executable(modbus_client modbus_client.cpp)
 target_link_libraries(modbus_client PRIVATE simple_socket)
 
