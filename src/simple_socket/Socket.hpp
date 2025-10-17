@@ -74,7 +74,8 @@ namespace simple_socket {
 #ifdef SIMPLE_SOCKET_WITH_TLS
     class TLSConnection: public SimpleConnection {
     public:
-        TLSConnection(SOCKET sock, SSL* ssl): sockfd_(sock), ssl_(ssl) {}
+        TLSConnection(SOCKET sock, SSL* ssl, SSL_CTX* ctx = nullptr)
+            : sockfd_(sock), ssl_(ssl), ctx_(ctx) {}
 
 
         bool write(const uint8_t* buf, size_t len) override {
@@ -88,24 +89,23 @@ namespace simple_socket {
         }
 
         bool readExact(uint8_t* buffer, size_t size) override {
-            size_t totalBytesReceived = 0;
-            while (totalBytesReceived < size) {
-                const int read = SSL_read(ssl_, buffer + totalBytesReceived,
-                                          static_cast<int>(size - totalBytesReceived));
-                if (read <= 0)
-                    return false;
-                totalBytesReceived += read;
-            }
-            return totalBytesReceived == size;
+            throw std::runtime_error("TLSConnection::readExact not implemented");
         }
 
         void close() override {
+
+            closeSocket(sockfd_);
+
             if (ssl_) {
                 SSL_shutdown(ssl_);
                 SSL_free(ssl_);
                 ssl_ = nullptr;
             }
-            closeSocket(sockfd_);
+            if (ctx_) {
+                SSL_CTX_free(ctx_);
+                ctx_ = nullptr;
+            }
+
         }
 
         ~TLSConnection() override {
@@ -115,6 +115,8 @@ namespace simple_socket {
     private:
         SOCKET sockfd_;
         SSL* ssl_;
+        SSL_CTX* ctx_;
+
     };
 #endif
 

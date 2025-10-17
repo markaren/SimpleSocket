@@ -2,12 +2,13 @@
 #ifndef SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
 #define SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
 
+#include <atomic>
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <thread>
-#include <atomic>
+#include <vector>
+#include <random>
 
 #include "simple_socket/WebSocket.hpp"
 
@@ -19,9 +20,9 @@ namespace simple_socket {
         std::function<void(WebSocketConnection*, const std::string&)>& onMessage;
 
         WebSocketCallbacks(std::function<void(WebSocketConnection*)>& onOpen,
-                          std::function<void(WebSocketConnection*)>& onClose,
-                          std::function<void(WebSocketConnection*,
-                                             const std::string&)>& onMessage)
+                           std::function<void(WebSocketConnection*)>& onClose,
+                           std::function<void(WebSocketConnection*,
+                                              const std::string&)>& onMessage)
             : onOpen(onOpen),
               onClose(onClose),
               onMessage(onMessage) {}
@@ -35,7 +36,9 @@ namespace simple_socket {
         void run(const std::function<void(SimpleConnection&)>& handshake) {
 
             handshake(*conn_);
-            if (callbacks_.onOpen) callbacks_.onOpen(this);
+            if (callbacks_.onOpen) {
+                callbacks_.onOpen(this);
+            }
 
             thread_ = std::thread([this] {
                 listen();
@@ -51,7 +54,9 @@ namespace simple_socket {
             if (!closed_) {
                 closed_ = true;
 
-                if (callbacks_.onClose) callbacks_.onClose(this);
+                if (callbacks_.onClose) {
+                    callbacks_.onClose(this);
+                }
 
                 if (self) {
                     std::vector<uint8_t> closeFrame = {0x88};// FIN, Close frame
@@ -136,13 +141,12 @@ namespace simple_socket {
 
                         break;
                     case 0x9:// Ping frame
-                        {
-                            std::vector<uint8_t> pongFrame = {0x8A};// FIN, Pong frame
-                            pongFrame.push_back(static_cast<uint8_t>(payload.size()));
-                            pongFrame.insert(pongFrame.end(), payload.begin(), payload.end());
-                            conn_->write(pongFrame);
-                        }
-                        break;
+                    {
+                        std::vector<uint8_t> pongFrame = {0x8A};// FIN, Pong frame
+                        pongFrame.push_back(static_cast<uint8_t>(payload.size()));
+                        pongFrame.insert(pongFrame.end(), payload.begin(), payload.end());
+                        conn_->write(pongFrame);
+                    } break;
                     case 0xA:// Pong frame
                         break;
                     default:
@@ -154,22 +158,36 @@ namespace simple_socket {
 
         static std::vector<uint8_t> createFrame(const std::string& message) {
             std::vector<uint8_t> frame;
-            frame.push_back(0x81);// FIN, text frame
+            frame.push_back(0x81); // FIN, text frame
 
-            if (message.size() <= 125) {
-                frame.push_back(static_cast<uint8_t>(message.size()));
-            } else if (message.size() <= 65535) {
-                frame.push_back(126);
-                frame.push_back((message.size() >> 8) & 0xFF);
-                frame.push_back(message.size() & 0xFF);
+            size_t payloadLen = message.size();
+            uint8_t maskBit = 0x80; // Mask bit set
+
+            if (payloadLen <= 125) {
+                frame.push_back(static_cast<uint8_t>(payloadLen) | maskBit);
+            } else if (payloadLen <= 65535) {
+                frame.push_back(126 | maskBit);
+                frame.push_back((payloadLen >> 8) & 0xFF);
+                frame.push_back(payloadLen & 0xFF);
             } else {
-                frame.push_back(127);
+                frame.push_back(127 | maskBit);
                 for (int i = 7; i >= 0; --i) {
-                    frame.push_back((message.size() >> (i * 8)) & 0xFF);
+                    frame.push_back((payloadLen >> (i * 8)) & 0xFF);
                 }
             }
 
-            frame.insert(frame.end(), message.begin(), message.end());
+            // Generate random mask
+            uint8_t mask[4];
+            std::random_device rd;
+            for (int i = 0; i < 4; ++i) mask[i] = rd();
+
+            frame.insert(frame.end(), mask, mask + 4);
+
+            // Mask payload
+            for (size_t i = 0; i < payloadLen; ++i) {
+                frame.push_back(message[i] ^ mask[i % 4]);
+            }
+
             return frame;
         }
     };

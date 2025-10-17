@@ -11,7 +11,7 @@ namespace simple_socket {
 
     class TCPClientContext: public SocketContext {
     public:
-        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port);
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port, bool useTLS = false);
 
         [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& host) override;
     };

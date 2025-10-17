@@ -15,6 +15,10 @@ add_executable(test_ws test_ws.cpp)
 add_test(NAME test_ws COMMAND test_ws)
 target_link_libraries(test_ws PRIVATE simple_socket Catch2::Catch2WithMain)
 
+add_executable(test_wss_client test_wss_client.cpp)
+add_test(NAME test_wss_client COMMAND test_wss_client)
+target_link_libraries(test_wss_client PRIVATE simple_socket Catch2::Catch2WithMain)
+
 add_executable(test_conversion test_conversion.cpp)
 add_test(NAME test_conversion COMMAND test_conversion)
 target_link_libraries(test_conversion PRIVATE simple_socket Catch2::Catch2WithMain)

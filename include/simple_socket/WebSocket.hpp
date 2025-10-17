@@ -52,7 +52,7 @@ namespace simple_socket {
 
         WebSocketClient();
 
-        void connect(const std::string& host, uint16_t port);
+        void connect(const std::string& url);
 
         void send(const std::string& msg);
 
