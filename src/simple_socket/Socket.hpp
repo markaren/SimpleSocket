@@ -10,9 +10,9 @@
 #include <openssl/ssl.h>
 #endif
 
-// #ifndef _WIN32
-// #include <fcntl.h>
-// #endif
+#ifndef _WIN32
+#include <fcntl.h>
+#endif
 
 
 namespace simple_socket {
@@ -78,16 +78,16 @@ namespace simple_socket {
 #ifdef SIMPLE_SOCKET_WITH_TLS
 
 
-//     // Helper: put socket into non-blocking mode
-//     inline void set_nonblocking(SOCKET s) {
-// #ifdef _WIN32
-//         u_long mode = 1;
-//         ioctlsocket(s, FIONBIO, &mode);
-// #else
-//         int flags = fcntl(s, F_GETFL, 0);
-//         if (flags >= 0) fcntl(s, F_SETFL, flags | O_NONBLOCK);
-// #endif
-//     }
+    // Helper: put socket into non-blocking mode
+    inline void set_nonblocking(SOCKET s) {
+#ifdef _WIN32
+        u_long mode = 1;
+        ioctlsocket(s, FIONBIO, &mode);
+#else
+        int flags = fcntl(s, F_GETFL, 0);
+        if (flags >= 0) fcntl(s, F_SETFL, flags | O_NONBLOCK);
+#endif
+    }
 
 
     class TLSConnection: public SimpleConnection {
@@ -95,9 +95,9 @@ namespace simple_socket {
         TLSConnection(SOCKET sock, SSL* ssl, SSL_CTX* ctx = nullptr)
             : sockfd_(sock), ssl_(ssl), ctx_(ctx) {
 
-            // set_nonblocking(sockfd_);
-            // // Ensure AUTO_RETRY is off for non-blocking semantics
-            // SSL_clear_mode(ssl_, SSL_MODE_AUTO_RETRY);
+            set_nonblocking(sockfd_);
+            // Ensure AUTO_RETRY is off for non-blocking semantics
+            SSL_clear_mode(ssl_, SSL_MODE_AUTO_RETRY);
         }
 
 

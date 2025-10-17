@@ -48,30 +48,28 @@ namespace simple_socket {
 
         void send(const std::string& message) override {
             const auto frame = createFrame(message);
-            std::lock_guard<std::mutex> lg(tx_mtx_);
+            std::lock_guard lg(tx_mtx_);
             conn_->write(frame);
         }
 
         void close(bool byClient) {
-            if (!closed_.exchange(true)) {
+            if (closed_.exchange(true)) return;
 
-                if (callbacks_.onClose) {
-                    callbacks_.onClose(this);
-                }
-
-                if (byClient) {
-                    // Best-effort close frame (no locks that can invert with TLS)
-                    std::vector<uint8_t> closeFrame = {0x88, 0x00};
-                    std::lock_guard<std::mutex> lg(tx_mtx_);
-                    conn_->write(closeFrame);
-                }
-
-                // Avoid joining from within the listener thread
-                if (thread_.joinable() && std::this_thread::get_id() != thread_.get_id())
-                    thread_.join();
-
-                if (callbacks_.onClose) callbacks_.onClose(this);
+            if (byClient) {
+                // Best-effort close frame (no locks that can invert with TLS)
+                std::vector<uint8_t> closeFrame = {0x88, 0x00};
+                std::lock_guard lg(tx_mtx_);
+                conn_->write(closeFrame);
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            conn_->close();
+
+            // Avoid joining from within the listener thread
+            if (thread_.joinable() && std::this_thread::get_id() != thread_.get_id())
+                thread_.join();
+
+            if (callbacks_.onClose) callbacks_.onClose(this);
         }
 
         bool closed() const {
@@ -86,7 +84,7 @@ namespace simple_socket {
         }
 
     private:
-        std::mutex tx_mtx_; // serialize writes only
+        std::mutex tx_mtx_;// serialize writes only
         std::atomic_bool closed_{false};
         WebSocket* socket_{};
         std::unique_ptr<SimpleConnection> conn_;
@@ -186,7 +184,7 @@ namespace simple_socket {
 
             // Generate random mask
             uint8_t mask[4];
-            static std::random_device rd;
+            std::random_device rd;
             for (int i = 0; i < 4; ++i) mask[i] = rd();
 
             frame.insert(frame.end(), mask, mask + 4);
