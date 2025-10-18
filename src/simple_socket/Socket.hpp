@@ -100,7 +100,7 @@ namespace simple_socket {
             return true;
         }
 
-        int read(uint8_t* buf, size_t len) override {
+        size_t read(uint8_t* buf, size_t len) override {
             if (!ssl_) return -1;
 
             for (;;) {
@@ -115,10 +115,6 @@ namespace simple_socket {
                 }
                 return -1; // fatal
             }
-        }
-
-        bool readExact(uint8_t* buffer, size_t size) override {
-            throw std::runtime_error("TLSConnection::readExact not implemented");
         }
 
         void close() override {
