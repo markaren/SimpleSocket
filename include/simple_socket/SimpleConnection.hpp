@@ -9,7 +9,7 @@ namespace simple_socket {
 
     class SimpleConnection {
     public:
-        virtual size_t read(uint8_t* buffer, size_t size) = 0;
+        virtual int read(uint8_t* buffer, size_t size) = 0;
         virtual bool write(const uint8_t* data, size_t size) = 0;
 
 
