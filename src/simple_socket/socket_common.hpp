@@ -7,7 +7,6 @@
 #ifdef _WIN32
 #include "WSASession.hpp"
 #include <WinSock2.h>
-#include <afunix.h>
 #include <ws2tcpip.h>
 #include <ws2def.h>
 #else

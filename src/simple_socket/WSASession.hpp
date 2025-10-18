@@ -2,6 +2,8 @@
 #ifndef SIMPLE_SOCKET_WSASESSION_HPP
 #define SIMPLE_SOCKET_WSASESSION_HPP
 
+#ifdef _WIN32
+
 #include <WinSock2.h>
 #include <mutex>
 #include <system_error>
@@ -38,5 +40,6 @@ namespace simple_socket {
 
 }// namespace simple_socket
 
+#endif
 
 #endif//SIMPLE_SOCKET_WSASESSION_HPP

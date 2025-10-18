@@ -9,13 +9,28 @@ namespace simple_socket {
 
     class SimpleConnection {
     public:
-        virtual int read(uint8_t* buffer, size_t size) = 0;
-        virtual bool readExact(uint8_t* buffer, size_t size) = 0;
+        virtual size_t read(uint8_t* buffer, size_t size) = 0;
         virtual bool write(const uint8_t* data, size_t size) = 0;
+
+
+        bool readExact(uint8_t* buffer, size_t size) {
+
+            size_t totalBytesReceived = 0;
+            while (totalBytesReceived < size) {
+                const auto remainingBytes = size - totalBytesReceived;
+                const auto bytesRead = read(buffer + totalBytesReceived, remainingBytes);
+                if (bytesRead <= 0) {
+                    return false;// Error or connection closed
+                }
+                totalBytesReceived += bytesRead;
+            }
+            return totalBytesReceived == size;
+        }
+
 
         template<class Container>
             requires std::ranges::contiguous_range<Container>
-        int read(Container& buffer) {
+        size_t read(Container& buffer) {
             return read(buffer.data(), buffer.size());
         }
 
