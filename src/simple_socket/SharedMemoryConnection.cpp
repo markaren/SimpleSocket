@@ -126,7 +126,7 @@ struct SharedMemoryConnection::Impl {
 SharedMemoryConnection::SharedMemoryConnection(const std::string& name, size_t size, bool isServer)
     : pimpl_(std::make_unique<Impl>(name, size, isServer)) {}
 
-size_t SharedMemoryConnection::read(uint8_t* buffer, size_t size) {
+int SharedMemoryConnection::read(uint8_t* buffer, size_t size) {
     if (!buffer || size == 0) return -1;
 #ifdef _WIN32
     WaitForSingleObject(pimpl_->peerReadSem_, INFINITE);

@@ -22,7 +22,7 @@ namespace simple_socket {
         explicit Socket(SOCKET socket)
             : sockfd_(socket) {}
 
-        size_t read(unsigned char* buffer, size_t size) override {
+        int read(unsigned char* buffer, size_t size) override {
 
 #ifdef _WIN32
             const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);

@@ -19,7 +19,7 @@ namespace simple_socket {
         using SimpleConnection::read;
         using SimpleConnection::write;
 
-        size_t read(uint8_t* buffer, size_t size) override;
+        int read(uint8_t* buffer, size_t size) override;
         bool write(const uint8_t* data, size_t size) override;
         void close() override;
 

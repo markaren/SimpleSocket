@@ -178,7 +178,7 @@ std::unique_ptr<SimpleConnection> UDPSocket::makeConnection(const std::string& a
         explicit UDPConnection(UDPSocket* sock, std::string address, uint16_t port)
             : socket(sock), address(std::move(address)), port(port) {}
 
-        size_t read(unsigned char* buffer, size_t size) override {
+        int read(unsigned char* buffer, size_t size) override {
             return socket->recvFrom(address, port, buffer, size);
         }
 
