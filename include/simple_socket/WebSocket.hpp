@@ -30,7 +30,7 @@ namespace simple_socket {
         std::function<void(WebSocketConnection*)> onClose;
         std::function<void(WebSocketConnection*, const std::string&)> onMessage;
 
-        explicit WebSocket(uint16_t port);
+        explicit WebSocket(uint16_t port, const std::string& cert_file = "", const std::string& key_file = "");
 
         void start();
 
@@ -52,7 +52,7 @@ namespace simple_socket {
 
         WebSocketClient();
 
-        void connect(const std::string& host, uint16_t port);
+        void connect(const std::string& url);
 
         void send(const std::string& msg);
 

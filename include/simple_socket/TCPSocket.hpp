@@ -11,14 +11,14 @@ namespace simple_socket {
 
     class TCPClientContext: public SocketContext {
     public:
-        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port);
+        [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& ip, uint16_t port, bool useTLS = false);
 
         [[nodiscard]] std::unique_ptr<SimpleConnection> connect(const std::string& host) override;
     };
 
     class TCPServer {
     public:
-        explicit TCPServer(uint16_t port, int backlog = 1);
+        explicit TCPServer(uint16_t port, int backlog = 1, bool useTLS = false, const std::string& cert_file = "", const std::string& key_file = "");
 
         TCPServer(const TCPServer&) = delete;
         TCPServer& operator=(const TCPServer&) = delete;

@@ -8,11 +8,13 @@
 #include "WSASession.hpp"
 #include <WinSock2.h>
 #include <ws2tcpip.h>
+#include <ws2def.h>
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <netdb.h>
 using SOCKET = int;
 #define INVALID_SOCKET (SOCKET)(~0)
 #define SOCKET_ERROR (-1)
