@@ -1,11 +1,14 @@
 
 #include "simple_socket/UnixDomainSocket.hpp"
 
-#include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/Socket.hpp"
 
-using namespace simple_socket;
+#ifdef _WIN32
+#include <afunix.h>
+#endif
 
+
+using namespace simple_socket;
 
 namespace {
 

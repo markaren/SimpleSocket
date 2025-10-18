@@ -17,11 +17,9 @@ namespace simple_socket {
         SharedMemoryConnection& operator=(const SharedMemoryConnection&) = delete;
 
         using SimpleConnection::read;
-        using SimpleConnection::readExact;
         using SimpleConnection::write;
 
-        int read(uint8_t* buffer, size_t size) override;
-        bool readExact(uint8_t* buffer, size_t size) override;
+        size_t read(uint8_t* buffer, size_t size) override;
         bool write(const uint8_t* data, size_t size) override;
         void close() override;
 

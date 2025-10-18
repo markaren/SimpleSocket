@@ -178,12 +178,8 @@ std::unique_ptr<SimpleConnection> UDPSocket::makeConnection(const std::string& a
         explicit UDPConnection(UDPSocket* sock, std::string address, uint16_t port)
             : socket(sock), address(std::move(address)), port(port) {}
 
-        int read(unsigned char* buffer, size_t size) override {
+        size_t read(unsigned char* buffer, size_t size) override {
             return socket->recvFrom(address, port, buffer, size);
-        }
-
-        bool readExact(unsigned char* buffer, size_t size) override {
-            throw std::runtime_error("Not supported");
         }
 
         bool write(const unsigned char* data, size_t size) override {

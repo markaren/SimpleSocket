@@ -12,7 +12,7 @@ namespace simple_socket {
         explicit Socket(SOCKET socket)
             : sockfd_(socket) {}
 
-        int read(unsigned char* buffer, size_t size) override {
+        size_t read(unsigned char* buffer, size_t size) override {
 
 #ifdef _WIN32
             const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer), static_cast<int>(size), 0);
@@ -21,26 +21,6 @@ namespace simple_socket {
 #endif
 
             return (read != SOCKET_ERROR) && (read != 0) ? read : -1;
-        }
-
-        bool readExact(unsigned char* buffer, size_t size) override {
-
-            size_t totalBytesReceived = 0;
-            while (totalBytesReceived < size) {
-                const auto remainingBytes = size - totalBytesReceived;
-#ifdef _WIN32
-                const auto read = recv(sockfd_, reinterpret_cast<char*>(buffer + totalBytesReceived), static_cast<int>(remainingBytes), 0);
-#else
-                const auto read = ::read(sockfd_, buffer + totalBytesReceived, remainingBytes);
-#endif
-                if (read == SOCKET_ERROR || read == 0) {
-
-                    return false;
-                }
-                totalBytesReceived += read;
-            }
-
-            return totalBytesReceived == size;
         }
 
         bool write(const unsigned char* data, size_t size) override {
