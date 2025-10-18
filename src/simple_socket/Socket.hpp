@@ -100,7 +100,7 @@ namespace simple_socket {
             return true;
         }
 
-        size_t read(uint8_t* buf, size_t len) override {
+        int read(uint8_t* buf, size_t len) override {
             if (!ssl_) return -1;
 
             for (;;) {
