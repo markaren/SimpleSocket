@@ -30,7 +30,7 @@ namespace simple_socket {
 
         template<class Container>
             requires std::ranges::contiguous_range<Container>
-        size_t read(Container& buffer) {
+        int read(Container& buffer) {
             return read(buffer.data(), buffer.size());
         }
 
