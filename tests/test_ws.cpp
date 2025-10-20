@@ -64,7 +64,7 @@ TEST_CASE("test Websocket") {
         cv.notify_one();
     };
 
-    client.connect("127.0.0.1", *port);
+    client.connect("ws://127.0.0.1:" + std::to_string(*port));
 
     std::unique_lock lock(m);
     cv.wait(lock, [&]() {

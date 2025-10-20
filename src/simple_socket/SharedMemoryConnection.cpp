@@ -156,10 +156,6 @@ int SharedMemoryConnection::read(uint8_t* buffer, size_t size) {
     return static_cast<int>(dataSize);
 }
 
-bool SharedMemoryConnection::readExact(uint8_t* buffer, size_t size) {
-    return read(buffer, size) == static_cast<int>(size);
-}
-
 bool SharedMemoryConnection::write(const uint8_t* data, size_t size) {
     if (!data || size == 0 || size > pimpl_->bufferSize_) return false;
 #ifdef _WIN32

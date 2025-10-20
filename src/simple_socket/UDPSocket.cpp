@@ -182,10 +182,6 @@ std::unique_ptr<SimpleConnection> UDPSocket::makeConnection(const std::string& a
             return socket->recvFrom(address, port, buffer, size);
         }
 
-        bool readExact(unsigned char* buffer, size_t size) override {
-            throw std::runtime_error("Not supported");
-        }
-
         bool write(const unsigned char* data, size_t size) override {
             return socket->sendTo(address, port, data, size);
         }

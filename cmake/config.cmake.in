@@ -1,4 +1,10 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+if(@SIMPLE_SOCKET_WITH_TLS@)
+    find_dependency(OpenSSL REQUIRED)
+endif()
+
 include(${CMAKE_CURRENT_LIST_DIR}/simple_socket-targets.cmake)
 check_required_components(simple_socket)
