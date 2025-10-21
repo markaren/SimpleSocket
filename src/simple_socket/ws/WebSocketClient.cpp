@@ -202,7 +202,7 @@ struct WebSocketClient::Impl {
         auto c = ctx_.connect(host, port, useTLS);
 
         WebSocketCallbacks callbacks{scope_->onOpen, scope_->onClose, scope_->onMessage};
-        conn = std::make_unique<WebSocketConnectionImpl>(callbacks, std::move(c));
+        conn = std::make_unique<WebSocketConnectionImpl>(callbacks, std::move(c), WebSocketConnectionImpl::Role::Client);
         conn->setBufferSize(bufferSize);
         conn->run([url, host, port](SimpleConnection& conn) {
             performHandshake(conn, url, host, port);

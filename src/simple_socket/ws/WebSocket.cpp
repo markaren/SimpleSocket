@@ -120,7 +120,7 @@ struct WebSocket::Impl {
 
             try {
                 WebSocketCallbacks callbacks{scope->onOpen, scope->onClose, scope->onMessage};
-                auto ws = std::make_unique<WebSocketConnectionImpl>(callbacks, socket.accept());
+                auto ws = std::make_unique<WebSocketConnectionImpl>(callbacks, socket.accept(), WebSocketConnectionImpl::Role::Server);
                 ws->run(handshake);
                 connections.emplace_back(std::move(ws));
             } catch (std::exception&) {
