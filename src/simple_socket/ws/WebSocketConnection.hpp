@@ -13,6 +13,8 @@
 
 #include "simple_socket/WebSocket.hpp"
 
+#include <array>
+
 namespace simple_socket {
 
     struct WebSocketCallbacks {
@@ -32,7 +34,11 @@ namespace simple_socket {
     struct WebSocketConnectionImpl: WebSocketConnection {
 
         explicit WebSocketConnectionImpl(const WebSocketCallbacks& callbacks, std::unique_ptr<SimpleConnection> conn)
-            : callbacks_(callbacks), conn_(std::move(conn)) {}
+            : conn_(std::move(conn)), callbacks_(callbacks), buffer(1024) {}
+
+        void setBufferSize(size_t size) {
+            buffer.resize(size);
+        }
 
         void run(const std::function<void(SimpleConnection&)>& handshake) {
 
@@ -56,8 +62,17 @@ namespace simple_socket {
             if (closed_.exchange(true)) return;
 
             if (byClient) {
-                // Best-effort close frame (no locks that can invert with TLS)
-                std::vector<uint8_t> closeFrame = {0x88, 0x00};
+                // Masked Close frame with empty payload
+                std::array<uint8_t, 4> mask{};
+                std::random_device rd;
+                for (auto& b : mask) b = static_cast<uint8_t>(rd());
+
+                std::vector<uint8_t> closeFrame;
+                closeFrame.reserve(2 + 4);
+                closeFrame.push_back(0x88);                 // FIN | Close
+                closeFrame.push_back(0x80 | 0x00);          // MASK bit | payload length (0)
+                closeFrame.insert(closeFrame.end(), mask.begin(), mask.end());
+
                 std::lock_guard lg(tx_mtx_);
                 conn_->write(closeFrame);
             }
@@ -91,9 +106,11 @@ namespace simple_socket {
         WebSocketCallbacks callbacks_;
         std::thread thread_;
 
+        std::vector<unsigned char> buffer;
+
 
         void listen() {
-            std::vector<unsigned char> buffer(1024);
+
             while (!closed_) {
 
                 const auto recv = conn_->read(buffer);
@@ -182,16 +199,20 @@ namespace simple_socket {
                 }
             }
 
-            // Generate random mask
-            uint8_t mask[4];
+            // Generate random mask (CSPRNG)
+            std::array<uint8_t, 4> mask{};
             std::random_device rd;
-            for (int i = 0; i < 4; ++i) mask[i] = rd();
+            for (auto& b : mask) b = static_cast<uint8_t>(rd());
 
-            frame.insert(frame.end(), mask, mask + 4);
+            // Reserve and write mask
+            frame.reserve(frame.size() + 4 + payloadLen);
+            frame.insert(frame.end(), mask.begin(), mask.end());
 
-            // Mask payload
+            // Append masked payload efficiently (write in place)
+            const size_t start = frame.size();
+            frame.resize(start + payloadLen);
             for (size_t i = 0; i < payloadLen; ++i) {
-                frame.push_back(message[i] ^ mask[i % 4]);
+                frame[start + i] = static_cast<uint8_t>(message[i]) ^ mask[i & 0x03];
             }
 
             return frame;

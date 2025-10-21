@@ -5,6 +5,8 @@
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/socket_common.hpp"
 
+#include "simple_socket/util/string_utils.hpp"
+
 #include "simple_socket/ws/WebSocketConnection.hpp"
 #include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 
@@ -42,6 +44,33 @@ namespace {
         }
     }
 
+    struct HttpResponse {
+        std::string statusLine;
+        std::unordered_map<std::string, std::string> headers;// lower-cased names, trimmed values
+    };
+
+    HttpResponse parseHttpResponseHeaders(const std::string& raw) {
+        HttpResponse r;
+        const auto hdrEnd = raw.find("\r\n\r\n");
+        const auto headerBlock = raw.substr(0, hdrEnd);
+        std::istringstream iss(headerBlock);
+        std::string line;
+
+        if (!std::getline(iss, line)) throwSocketError("Bad HTTP response");
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        r.statusLine = line;
+
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            const auto pos = line.find(':');
+            if (pos == std::string::npos) continue;
+            auto name = toLower(trim(line.substr(0, pos)));
+            auto value = trim(line.substr(pos + 1));
+            r.headers[name] = value;
+        }
+        return r;
+    }
+
     void performHandshake(SimpleConnection& conn, const std::string& url, const std::string& host, uint16_t port) {
 
         // Extract path from URL
@@ -53,15 +82,15 @@ namespace {
 
         // Generate handshake key
         char key[25] = {};
-        char base64Key[40] = {};
-        WebSocketHandshakeKeyGen::generate(key, base64Key);
+        char secKey[40] = {};
+        WebSocketHandshakeKeyGen::generate(key, secKey);
 
         std::ostringstream request;
         request << "GET " << path << " HTTP/1.1\r\n"
                 << "Host: " << host << ":" << port << "\r\n"
                 << "Upgrade: websocket\r\n"
                 << "Connection: Upgrade\r\n"
-                << "Sec-WebSocket-Key: " << base64Key << "\r\n"
+                << "Sec-WebSocket-Key: " << secKey << "\r\n"
                 << "Sec-WebSocket-Version: 13\r\n\r\n";
 
         const std::string requestStr = request.str();
@@ -69,15 +98,48 @@ namespace {
             throwSocketError("Failed to send handshake request");
         }
 
-        std::vector<uint8_t> buffer(1024);
-        const auto bytesReceived = conn.read(buffer);
-        if (bytesReceived == -1) {
-            throwSocketError("Failed to read handshake response from server.");
+        // Read until end of headers
+        std::string response;
+        std::vector<uint8_t> buf(512);
+        constexpr size_t kMaxHeaderBytes = 16 * 1024;
+        while (response.find("\r\n\r\n") == std::string::npos) {
+            const int n = conn.read(buf);
+            if (n <= 0) throwSocketError("Failed to read handshake response");
+            response.append(reinterpret_cast<const char*>(buf.data()), static_cast<size_t>(n));
+            if (response.size() > kMaxHeaderBytes) throwSocketError("Handshake headers too large");
         }
 
-        const std::string response(buffer.begin(), buffer.begin() + bytesReceived);
-        if (response.find(" 101 ") == std::string::npos) {
-            throwSocketError("Handshake failed with the server.");
+        // Parse headers
+        const auto resp = parseHttpResponseHeaders(response);
+
+        // Validate status line (HTTP/1.1 101 ...)
+        if (resp.statusLine.find(" 101 ") == std::string::npos &&
+            resp.statusLine.rfind(" 101", resp.statusLine.size() - 3) == std::string::npos) {
+            throwSocketError("Handshake failed: expected HTTP 101");
+        }
+
+        // Validate Upgrade: websocket
+        auto itUp = resp.headers.find("upgrade");
+        if (itUp == resp.headers.end() || toLower(itUp->second) != "websocket") {
+            throwSocketError("Handshake failed: invalid Upgrade header");
+        }
+
+        // Validate Connection includes "upgrade"
+        auto itConn = resp.headers.find("connection");
+        if (itConn == resp.headers.end() ||
+            toLower(itConn->second).find("upgrade") == std::string::npos) {
+            throwSocketError("Handshake failed: invalid Connection header");
+        }
+
+        // Validate Sec-WebSocket-Accept
+        auto itAcc = resp.headers.find("sec-websocket-accept");
+        if (itAcc == resp.headers.end()) throwSocketError("Handshake failed: missing Sec-WebSocket-Accept");
+
+        char acceptBuf[29] = {};                              // 28 chars + NUL
+        WebSocketHandshakeKeyGen::generate(secKey, acceptBuf);// computes the 28-char base64 accept
+        const std::string expectedAccept(acceptBuf, acceptBuf + 28);
+        if (trim(itAcc->second) != expectedAccept) {
+            throwSocketError("Handshake failed: Sec-WebSocket-Accept mismatch");
         }
     }
 }// namespace
@@ -89,14 +151,16 @@ struct WebSocketClient::Impl {
     explicit Impl(WebSocketClient* scope)
         : scope_(scope) {}
 
-    void connect(const std::string& url) {
+    void connect(const std::string& url, int bufferSize = 1024) {
 
-        bool useTLS = url.find("wss://") != std::string::npos;
+        const bool useTLS = url.rfind("wss://", 0) == 0;
 
         const auto [host, port] = parseWebSocketURL(url);
         auto c = ctx_.connect(host, port, useTLS);
 
-        conn = std::make_unique<WebSocketConnectionImpl>(WebSocketCallbacks {scope_->onOpen, scope_->onClose, scope_->onMessage}, std::move(c));
+        WebSocketCallbacks callbacks{scope_->onOpen, scope_->onClose, scope_->onMessage};
+        conn = std::make_unique<WebSocketConnectionImpl>(callbacks, std::move(c));
+        conn->setBufferSize(bufferSize);
         conn->run([url, host, port](SimpleConnection& conn) {
             performHandshake(conn, url, host, port);
         });
@@ -108,10 +172,12 @@ struct WebSocketClient::Impl {
     }
 
     void close() {
+
         conn->close(true);
     }
 
     ~Impl() {
+
         close();
     }
 
