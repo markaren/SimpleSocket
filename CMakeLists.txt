@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(simple_socket VERSION 0.3.0)
+project(simple_socket VERSION 0.4.0)
 
 option(SIMPLE_SOCKET_BUILD_TESTS OFF)
 option(SIMPLE_SOCKET_WITH_TLS "Enable TLS (OpenSSL) for WSS" OFF)
