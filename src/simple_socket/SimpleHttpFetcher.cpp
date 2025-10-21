@@ -130,6 +130,5 @@ std::optional<std::string> SimpleHttpFetcher::fetch(const std::string& url) {
     const size_t sep = response.find("\r\n\r\n");
     if (sep == std::string::npos) return std::nullopt; // malformed HTTP
 
-    // Return only body so files like 'cmake-build-debug/tests/integration/Placeholder_view_vector.svg' are pure XML
     return response.substr(sep + 4);
 }
