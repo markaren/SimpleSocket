@@ -4,6 +4,7 @@ set(publicHeaders
 
         "simple_socket/SharedMemoryConnection.hpp"
         "simple_socket/SimpleConnection.hpp"
+        "simple_socket/SimpleHttpFetcher.hpp"
         "simple_socket/SocketContext.hpp"
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
@@ -31,6 +32,7 @@ set(privateHeaders
 
 set(sources
         "simple_socket/SharedMemoryConnection.cpp"
+        "simple_socket/SimpleHttpFetcher.cpp"
         "simple_socket/SocketContext.cpp"
         "simple_socket/TCPSocket.cpp"
         "simple_socket/UDPSocket.cpp"

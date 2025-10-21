@@ -1,4 +1,7 @@
 
+add_executable(fetch_file fetch_file.cpp)
+target_link_libraries(fetch_file PRIVATE simple_socket)
+
 add_executable(run_tcp_server run_tcp_server.cpp)
 target_link_libraries(run_tcp_server PRIVATE simple_socket)
 
