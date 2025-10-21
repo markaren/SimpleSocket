@@ -7,12 +7,14 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace simple_socket {
 
     class SimpleHttpFetcher {
     public:
         std::optional<std::string> fetch(const std::string& url);
+        std::optional<std::vector<uint8_t>> fetchBytes(const std::string& url);
 
     private:
         TCPClientContext context;
