@@ -1,10 +1,9 @@
 
 #include "simple_socket/MQTTClient.hpp"
 
-#include <array>
-#include <iostream>
 #include <utility>
 #include <vector>
+#include <stdexcept>
 
 using namespace simple_socket;
 
