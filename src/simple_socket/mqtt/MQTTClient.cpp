@@ -1,7 +1,8 @@
 
-#include "simple_socket/MQTTClient.hpp"
+#include "simple_socket/mqtt/MQTTClient.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
+#include "simple_socket/mqtt/mqtt_common.hpp"
 
 #include <mutex>
 #include <stdexcept>
@@ -14,44 +15,12 @@ using namespace simple_socket;
 
 namespace {
 
-    enum PacketType {
-        CONNECT = 0x10,
-        CONNACK = 0x20,
-        PUBLISH = 0x30,
-        SUBSCRIBE = 0x82,
-        SUBACK = 0x90,
-        UNSUBSCRIBE = 0xA2,
-        UNSUBACK = 0xB0,
-        PINGREQ = 0xC0,
-        PINGRESP = 0xD0,
-        DISCONNECT = 0xE0
-    };
 
-    std::vector<uint8_t> encodeShortString(const std::string& s) {
-        std::vector<uint8_t> data;
-        data.reserve(s.size() + 2);
-        data.push_back(static_cast<uint8_t>(s.size() >> 8));
-        data.push_back(static_cast<uint8_t>(s.size() & 0xFF));
-        data.insert(data.end(), s.begin(), s.end());
-        return data;
-    }
-
-    std::vector<uint8_t> encodeRemainingLength(size_t len) {
-        std::vector<uint8_t> bytes;
-        do {
-            uint8_t byte = len % 128;
-            len /= 128;
-            if (len > 0) byte |= 128;
-            bytes.push_back(byte);
-        } while (len > 0);
-        return bytes;
-    }
-
-    void connackHandler(SimpleConnection* conn_) {
+    void connackHandler(SimpleConnection* conn) {
 
         // Robust CONNACK handling
         uint8_t header1 = 0;
-        if (!conn_->readExact(&header1, 1)) {
+        if (!conn->readExact(&header1, 1)) {
             throw std::runtime_error("MQTT: failed to read CONNACK header");
         }
         if ((header1 & 0xF0) != CONNACK) {
@@ -59,27 +28,13 @@ namespace {
         }
 
         // Decode Remaining Length (1..4 bytes varint)
-        size_t remLen = 0;
-        size_t multiplier = 1;
-        for (int i = 0; i < 4; ++i) {
-            uint8_t enc = 0;
-            if (!conn_->readExact(&enc, 1)) {
-                throw std::runtime_error("MQTT: failed to read CONNACK length");
-            }
-            remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
-            if ((enc & 0x80) == 0) break;
-            multiplier *= 128;
-            if (i == 3) {
-                throw std::runtime_error("MQTT: malformed Remaining Length");
-            }
-        }
-
+        size_t remLen = decodeRemainingLength(conn);
         if (remLen < 2) {
             throw std::runtime_error("MQTT: CONNACK too short");
         }
 
         std::vector<uint8_t> vh(remLen);
-        if (!conn_->readExact(vh.data(), vh.size())) {
+        if (!conn->readExact(vh.data(), vh.size())) {
             throw std::runtime_error("MQTT: failed to read CONNACK payload");
         }
 
@@ -227,19 +182,7 @@ struct MQTTClient::Impl {
                 uint8_t header1 = 0;
                 if (!conn_->readExact(&header1, 1)) break;
 
-                // Remaining Length (MQTT varint, 1..4 bytes)
-                size_t remLen = 0;
-                size_t multiplier = 1;
-                for (int i = 0; i < 4; ++i) {
-                    uint8_t enc = 0;
-                    if (!conn_->readExact(&enc, 1)) return;
-                    remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
-                    if ((enc & 0x80) == 0) break;
-                    multiplier *= 128;
-                    if (i == 3) return;// malformed Remaining Length
-                }
-
-                // Read remaining bytes (variable header + payload)
+                size_t remLen = decodeRemainingLength(conn_.get());
                 std::vector<uint8_t> payload(remLen);
                 if (remLen > 0 && !conn_->readExact(payload.data(), payload.size())) break;
 
@@ -338,7 +281,6 @@ MQTTClient::MQTTClient(const std::string& host, int port, const std::string& cli
     : pimpl_(std::make_unique<Impl>(host, port, clientId)) {}
 
 void MQTTClient::connect(bool tls) {
-
     pimpl_->connect(tls);
 }
 
