@@ -16,11 +16,13 @@ namespace simple_socket {
     public:
         MQTTClient(std::string host, int port, std::string clientId);
 
-        void connect();
+        void connect(bool tls = false);
 
         void close();
 
         void subscribe(const std::string& topic, const std::function<void(std::string)>& callback);
+
+        void unsubscribe(const std::string& topic);
 
         void publish(const std::string& topic, const std::string& message);
 

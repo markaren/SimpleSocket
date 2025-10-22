@@ -21,8 +21,9 @@ namespace {
         DISCONNECT = 0xE0
     };
 
-    std::vector<uint8_t> encodeString(const std::string& s) {
+    std::vector<uint8_t> encodeShortString(const std::string& s) {
         std::vector<uint8_t> data;
+        data.reserve(s.size() + 2);
         data.push_back(static_cast<uint8_t>(s.size() >> 8));
         data.push_back(static_cast<uint8_t>(s.size() & 0xFF));
         data.insert(data.end(), s.begin(), s.end());
@@ -40,22 +41,89 @@ namespace {
         return bytes;
     }
 
+    void connackHandler(SimpleConnection* conn_) {
+
+        // Robust CONNACK handling
+        uint8_t header1 = 0;
+        if (!conn_->readExact(&header1, 1)) {
+            throw std::runtime_error("MQTT: failed to read CONNACK header");
+        }
+        if ((header1 & 0xF0) != CONNACK) {
+            throw std::runtime_error("MQTT: expected CONNACK packet");
+        }
+
+        // Decode Remaining Length (1..4 bytes varint)
+        size_t remLen = 0;
+        size_t multiplier = 1;
+        for (int i = 0; i < 4; ++i) {
+            uint8_t enc = 0;
+            if (!conn_->readExact(&enc, 1)) {
+                throw std::runtime_error("MQTT: failed to read CONNACK length");
+            }
+            remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
+            if ((enc & 0x80) == 0) break;
+            multiplier *= 128;
+            if (i == 3) {
+                throw std::runtime_error("MQTT: malformed Remaining Length");
+            }
+        }
+
+        if (remLen < 2) {
+            throw std::runtime_error("MQTT: CONNACK too short");
+        }
+
+        std::vector<uint8_t> vh(remLen);
+        if (!conn_->readExact(vh.data(), vh.size())) {
+            throw std::runtime_error("MQTT: failed to read CONNACK payload");
+        }
+
+        const uint8_t sessionPresent = static_cast<uint8_t>(vh[0] & 0x01);
+        const uint8_t rc = vh[1];// Return Code (v3.1.1) or Reason Code (v5)
+
+        if (rc == 0x00) {
+            // Success; `sessionPresent` is informational
+            (void) sessionPresent;
+            return;
+        }
+
+        auto reasonText = [](uint8_t code) -> const char* {
+            switch (code) {
+                case 0x01:
+                    return "unacceptable protocol version";
+                case 0x02:
+                    return "identifier rejected";
+                case 0x03:
+                    return "server unavailable";
+                case 0x04:
+                    return "bad username or password";
+                case 0x05:
+                    return "not authorized";
+                default:
+                    return "connection refused";
+            }
+        };
+
+        std::string msg = "MQTT connection failed (code " +
+                          std::to_string(rc) + "): " + reasonText(rc);
+        throw std::runtime_error(msg);
+    }
+
 }// namespace
 
 MQTTClient::MQTTClient(std::string host, int port, std::string clientId)
     : host_(std::move(host)), port_(port), clientId_(std::move(clientId)) {}
 
-void MQTTClient::connect() {
+void MQTTClient::connect(bool tls) {
 
-    conn_ = ctx_.connect(host_, port_);
+    conn_ = ctx_.connect(host_, port_, tls);
 
-    std::vector<uint8_t> payload = encodeString("MQTT");// protocol name
-    payload.push_back(0x04);                            // version 3.1.1
-    payload.push_back(0x02);                            // flags: clean session
-    payload.push_back(0x00);                            // keepalive MSB
-    payload.push_back(0x3C);                            // keepalive LSB = 60 sec
+    std::vector<uint8_t> payload = encodeShortString("MQTT");// protocol name
+    payload.push_back(0x04);                                 // version 3.1.1
+    payload.push_back(0x02);                                 // flags: clean session
+    payload.push_back(0x00);                                 // keepalive MSB
+    payload.push_back(0x3C);                                 // keepalive LSB = 60 sec
 
-    auto cid = encodeString(clientId_);
+    auto cid = encodeShortString(clientId_);
     payload.insert(payload.end(), cid.begin(), cid.end());
 
     std::vector<uint8_t> packet = {CONNECT};
@@ -64,13 +132,8 @@ void MQTTClient::connect() {
     packet.insert(packet.end(), payload.begin(), payload.end());
 
     conn_->write(packet);
-    std::array<uint8_t, 4> buffer{};
-    conn_->readExact(buffer);
-    if (buffer[0] == CONNACK && buffer[3] == 0x00) {
-        return;
-    }
 
-    throw std::runtime_error("MQTT connection failed");
+    connackHandler(conn_.get());
 }
 
 void MQTTClient::close() {
@@ -88,11 +151,16 @@ void MQTTClient::close() {
 }
 
 void MQTTClient::subscribe(const std::string& topic, const std::function<void(std::string)>& callback) {
+
+    if (!conn_) {
+        throw std::runtime_error("MQTTClient: not connected");
+    }
+
     std::vector<uint8_t> payload;
     payload.push_back(0x00);// Packet ID MSB
     payload.push_back(0x01);// Packet ID LSB
 
-    auto t = encodeString(topic);
+    auto t = encodeShortString(topic);
     payload.insert(payload.end(), t.begin(), t.end());
     payload.push_back(0x00);// QoS 0
 
@@ -106,8 +174,41 @@ void MQTTClient::subscribe(const std::string& topic, const std::function<void(st
     callbacks_.emplace(topic, callback);
 }
 
+void MQTTClient::unsubscribe(const std::string& topic) {
+
+    if (!conn_) return;
+
+    // Packet Identifier (non‑zero, wraps)
+    static uint16_t pid = 1;
+    if (++pid == 0) ++pid;
+
+    // Payload: Packet Identifier + Topic Filter (MQTT short string)
+    std::vector<uint8_t> payload;
+    payload.push_back(static_cast<uint8_t>(pid >> 8));
+    payload.push_back(static_cast<uint8_t>(pid & 0xFF));
+
+    auto t = encodeShortString(topic);
+    payload.insert(payload.end(), t.begin(), t.end());
+
+    // Fixed header: UNSUBSCRIBE (0xA2) + Remaining Length
+    std::vector packet = {static_cast<uint8_t>(0xA2)};
+    const auto len = encodeRemainingLength(payload.size());
+    packet.insert(packet.end(), len.begin(), len.end());
+    packet.insert(packet.end(), payload.begin(), payload.end());
+
+    conn_->write(packet);
+
+    // Remove local handler
+    callbacks_.erase(topic);
+}
+
 void MQTTClient::publish(const std::string& topic, const std::string& message) {
-    auto t = encodeString(topic);
+
+    if (!conn_) {
+        throw std::runtime_error("MQTTClient: not connected");
+    }
+
+    auto t = encodeShortString(topic);
     std::vector<uint8_t> payload;
     payload.insert(payload.end(), t.begin(), t.end());
     payload.insert(payload.end(), message.begin(), message.end());
@@ -121,6 +222,10 @@ void MQTTClient::publish(const std::string& topic, const std::string& message) {
 }
 
 void MQTTClient::run() {
+
+    if (!conn_) {
+        throw std::runtime_error("MQTTClient: not connected");
+    }
 
     thread_ = std::thread([this] {
         while (!stop_) {
