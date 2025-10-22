@@ -10,11 +10,12 @@ Supports:
 * WebSockets
 * HTTP fetcher
 * Modbus [TCP]
+* MQTT client [TCP]
 
 
 SimpleSocket supports TLS via openssl. 
 This feature is optional and can be enabled at build time and allows use of TLS for TCP/IP connections,
-including Secure WebSockets (wss://), and https:// support in the HTTP fetcher.
+including Secure WebSockets (wss://), MQTT and https:// support in the HTTP fetcher.
 
 ### Downstream usage with CMake FetchContent
 ```cmake
