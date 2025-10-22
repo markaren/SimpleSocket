@@ -32,6 +32,7 @@ set(privateHeaders
 
 set(sources
         "simple_socket/MQTTClient.cpp"
+        "simple_socket/MQTTServer.cpp"
         "simple_socket/SharedMemoryConnection.cpp"
         "simple_socket/SimpleHttpFetcher.cpp"
         "simple_socket/SocketContext.cpp"

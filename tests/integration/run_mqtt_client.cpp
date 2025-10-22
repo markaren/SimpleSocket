@@ -1,5 +1,6 @@
 
 #include "simple_socket/MQTTClient.hpp"
+#include "simple_socket/MQTTServer.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -8,8 +9,12 @@
 using namespace simple_socket;
 
 int main() {
+
+    MQTTServer server(1883);
+    server.start();
+
     try {
-        MQTTClient client("test.mosquitto.org", 1883, "SimpleSocketClient");
+        MQTTClient client("127.0.0.1", 1883, "SimpleSocketClient");
         client.connect(false);
 
         std::string topic1 = "simple_socket/topic1";
@@ -43,6 +48,7 @@ int main() {
         std::cin.get();
         stop = true;
         client.close();
+        server.stop();
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

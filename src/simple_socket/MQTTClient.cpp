@@ -246,40 +246,59 @@ struct MQTTClient::Impl {
                 const uint8_t packetType = header1 & 0xF0;
                 const uint8_t flags = header1 & 0x0F;
 
-                if (packetType == PINGRESP) {
-                    // Must have RL=0; ignore payload if any and mark acked
-                    continue;
-                }
-
-                if (packetType == PUBLISH) {
-                    size_t pos = 0;
-
-                    // Topic length (2 bytes)
-                    if (payload.size() < 2) continue;// malformed
-                    const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
-                    pos += 2;
-
-                    // Bounds check before constructing the topic string
-                    if (pos + topicLen > payload.size()) continue;// avoid crash
-                    const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
-                    std::string topic(topicPtr, topicLen);
-                    pos += topicLen;
-
-                    // Skip Packet Identifier for QoS > 0
-                    const auto qos = static_cast<uint8_t>((flags >> 1) & 0x03);
-                    if (qos > 0) {
-                        if (pos + 2 > payload.size()) continue;// malformed
-                        pos += 2;
+                switch (packetType) {
+                    case PINGRESP: {
+                        continue;
                     }
+                    case SUBACK: {
+                        // Variable header: Packet Identifier (2 bytes), then return codes
+                        if (payload.size() < 2) break;
+                        const uint16_t pid = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
+                        // Optional: inspect granted QoS codes in payload[2..]
+                        // Mark subscription as active if tracking inflight requests.
+                        // Suppress "unhandled" log.
+                        (void) pid;
+                    } break;
+                    case UNSUBACK: {
+                        // Variable header: Packet Identifier (2 bytes)
+                        if (payload.size() < 2) break;
+                        const uint16_t pid = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
+                        // Mark unsubscribe completion if tracking inflight requests.
+                        (void) pid;
+                    } break;
+                    case PUBLISH: {
+                        size_t pos = 0;
 
-                    // Remaining is the application message
-                    if (pos > payload.size()) continue;
-                    const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
-                    const std::string msg(msgPtr, payload.size() - pos);
+                        // Topic length (2 bytes)
+                        if (payload.size() < 2) continue;// malformed
+                        const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
+                        pos += 2;
 
-                    std::lock_guard lock(mutex_);
-                    if (callbacks_.contains(topic)) {
-                        callbacks_.at(topic)(msg);
+                        // Bounds check before constructing the topic string
+                        if (pos + topicLen > payload.size()) continue;// avoid crash
+                        const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                        std::string topic(topicPtr, topicLen);
+                        pos += topicLen;
+
+                        // Skip Packet Identifier for QoS > 0
+                        const auto qos = static_cast<uint8_t>((flags >> 1) & 0x03);
+                        if (qos > 0) {
+                            if (pos + 2 > payload.size()) continue;// malformed
+                            pos += 2;
+                        }
+
+                        // Remaining is the application message
+                        if (pos > payload.size()) continue;
+                        const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                        const std::string msg(msgPtr, payload.size() - pos);
+
+                        std::lock_guard lock(mutex_);
+                        if (callbacks_.contains(topic)) {
+                            callbacks_.at(topic)(msg);
+                        }
+                    } break;
+                    default: {
+                        //std::cout << "MQTTClient: unhandled packet type: 0x" << std::hex << static_cast<int>(packetType) << std::dec << std::endl;
                     }
                 }
             }
