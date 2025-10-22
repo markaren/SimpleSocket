@@ -1,9 +1,14 @@
 
 #include "simple_socket/MQTTClient.hpp"
 
+#include "simple_socket/TCPSocket.hpp"
+
+#include <mutex>
+#include <stdexcept>
+#include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <stdexcept>
 
 using namespace simple_socket;
 
@@ -104,188 +109,239 @@ namespace {
             }
         };
 
-        std::string msg = "MQTT connection failed (code " +
-                          std::to_string(rc) + "): " + reasonText(rc);
+        const std::string msg{"MQTT connection failed (code " +
+                              std::to_string(rc) + "): " + reasonText(rc)};
         throw std::runtime_error(msg);
     }
 
 }// namespace
 
-MQTTClient::MQTTClient(std::string host, int port, std::string clientId)
-    : host_(std::move(host)), port_(port), clientId_(std::move(clientId)) {}
+
+struct MQTTClient::Impl {
+
+    Impl(std::string host, int port, std::string clientId)
+        : clientId_(std::move(clientId)), host_(std::move(host)), port_(port) {}
+
+    void connect(bool tls) {
+
+        conn_ = ctx_.connect(host_, port_, tls);
+
+        std::vector<uint8_t> payload = encodeShortString("MQTT");// protocol name
+        payload.push_back(0x04);                                 // version 3.1.1
+        payload.push_back(0x02);                                 // flags: clean session
+        payload.push_back(0x00);                                 // keepalive MSB
+        payload.push_back(0x3C);                                 // keepalive LSB = 60 sec
+
+        auto cid = encodeShortString(clientId_);
+        payload.insert(payload.end(), cid.begin(), cid.end());
+
+        std::vector<uint8_t> packet = {CONNECT};
+        auto len = encodeRemainingLength(payload.size());
+        packet.insert(packet.end(), len.begin(), len.end());
+        packet.insert(packet.end(), payload.begin(), payload.end());
+
+        conn_->write(packet);
+
+        connackHandler(conn_.get());
+    }
+
+    void subscribe(const std::string& topic, const std::function<void(std::string)>& callback) {
+        if (!conn_) {
+            throw std::runtime_error("MQTTClient: not connected");
+        }
+
+        std::vector<uint8_t> payload;
+        payload.push_back(0x00);// Packet ID MSB
+        payload.push_back(0x01);// Packet ID LSB
+
+        auto t = encodeShortString(topic);
+        payload.insert(payload.end(), t.begin(), t.end());
+        payload.push_back(0x00);// QoS 0
+
+        std::vector<uint8_t> packet = {SUBSCRIBE};
+        auto len = encodeRemainingLength(payload.size());
+        packet.insert(packet.end(), len.begin(), len.end());
+        packet.insert(packet.end(), payload.begin(), payload.end());
+
+        conn_->write(packet);
+
+        std::lock_guard lock(mutex_);
+        callbacks_.emplace(topic, callback);
+    }
+
+    void unsubscribe(const std::string& topic) {
+        if (!conn_) return;
+
+        // Packet Identifier (non‑zero, wraps)
+        static uint16_t pid = 1;
+        if (++pid == 0) ++pid;
+
+        // Payload: Packet Identifier + Topic Filter (MQTT short string)
+        std::vector<uint8_t> payload;
+        payload.push_back(static_cast<uint8_t>(pid >> 8));
+        payload.push_back(static_cast<uint8_t>(pid & 0xFF));
+
+        auto t = encodeShortString(topic);
+        payload.insert(payload.end(), t.begin(), t.end());
+
+        std::vector<uint8_t> packet = {UNSUBSCRIBE};
+        const auto len = encodeRemainingLength(payload.size());
+        packet.insert(packet.end(), len.begin(), len.end());
+        packet.insert(packet.end(), payload.begin(), payload.end());
+
+        conn_->write(packet);
+
+        std::lock_guard lock(mutex_);
+        callbacks_.erase(topic);
+    }
+
+
+    void publish(const std::string& topic, const std::string& message) {
+
+        if (!conn_) {
+            throw std::runtime_error("MQTTClient: not connected");
+        }
+
+        auto t = encodeShortString(topic);
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), t.begin(), t.end());
+        payload.insert(payload.end(), message.begin(), message.end());
+
+        std::vector<uint8_t> packet = {PUBLISH};
+        auto len = encodeRemainingLength(payload.size());
+        packet.insert(packet.end(), len.begin(), len.end());
+        packet.insert(packet.end(), payload.begin(), payload.end());
+
+        conn_->write(packet);
+    }
+
+    void run() {
+
+        if (!conn_) {
+            throw std::runtime_error("MQTTClient: not connected");
+        }
+
+        thread_ = std::thread([this] {
+            while (!stop_) {
+                // Fixed header: byte 1
+                uint8_t header1 = 0;
+                if (!conn_->readExact(&header1, 1)) break;
+
+                // Remaining Length (MQTT varint, 1..4 bytes)
+                size_t remLen = 0;
+                size_t multiplier = 1;
+                for (int i = 0; i < 4; ++i) {
+                    uint8_t enc = 0;
+                    if (!conn_->readExact(&enc, 1)) return;
+                    remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
+                    if ((enc & 0x80) == 0) break;
+                    multiplier *= 128;
+                    if (i == 3) return;// malformed Remaining Length
+                }
+
+                // Read remaining bytes (variable header + payload)
+                std::vector<uint8_t> payload(remLen);
+                if (remLen > 0 && !conn_->readExact(payload.data(), payload.size())) break;
+
+                const uint8_t packetType = header1 & 0xF0;
+                const uint8_t flags = header1 & 0x0F;
+
+                if (packetType == PINGRESP) {
+                    // Must have RL=0; ignore payload if any and mark acked
+                    continue;
+                }
+
+                if (packetType == PUBLISH) {
+                    size_t pos = 0;
+
+                    // Topic length (2 bytes)
+                    if (payload.size() < 2) continue;// malformed
+                    const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
+                    pos += 2;
+
+                    // Bounds check before constructing the topic string
+                    if (pos + topicLen > payload.size()) continue;// avoid crash
+                    const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                    std::string topic(topicPtr, topicLen);
+                    pos += topicLen;
+
+                    // Skip Packet Identifier for QoS > 0
+                    const auto qos = static_cast<uint8_t>((flags >> 1) & 0x03);
+                    if (qos > 0) {
+                        if (pos + 2 > payload.size()) continue;// malformed
+                        pos += 2;
+                    }
+
+                    // Remaining is the application message
+                    if (pos > payload.size()) continue;
+                    const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                    const std::string msg(msgPtr, payload.size() - pos);
+
+                    std::lock_guard lock(mutex_);
+                    if (callbacks_.contains(topic)) {
+                        callbacks_.at(topic)(msg);
+                    }
+                }
+            }
+        });
+    }
+
+    void close() {
+
+        stop_ = true;
+        if (thread_.joinable()) {
+            thread_.join();
+        }
+
+        if (conn_) {
+            std::vector<uint8_t> packet = {DISCONNECT, 0x00};
+            conn_->write(packet);
+            conn_->close();
+        }
+    }
+
+private:
+    TCPClientContext ctx_;
+    std::unique_ptr<SimpleConnection> conn_;
+
+    std::thread thread_;
+    std::mutex mutex_;
+
+    std::atomic_bool stop_{false};
+    std::unordered_map<std::string, std::function<void(std::string)>> callbacks_;
+
+    std::string clientId_;
+    std::string host_;
+    int port_;
+};
+
+MQTTClient::MQTTClient(const std::string& host, int port, const std::string& clientId)
+    : pimpl_(std::make_unique<Impl>(host, port, clientId)) {}
 
 void MQTTClient::connect(bool tls) {
 
-    conn_ = ctx_.connect(host_, port_, tls);
-
-    std::vector<uint8_t> payload = encodeShortString("MQTT");// protocol name
-    payload.push_back(0x04);                                 // version 3.1.1
-    payload.push_back(0x02);                                 // flags: clean session
-    payload.push_back(0x00);                                 // keepalive MSB
-    payload.push_back(0x3C);                                 // keepalive LSB = 60 sec
-
-    auto cid = encodeShortString(clientId_);
-    payload.insert(payload.end(), cid.begin(), cid.end());
-
-    std::vector<uint8_t> packet = {CONNECT};
-    auto len = encodeRemainingLength(payload.size());
-    packet.insert(packet.end(), len.begin(), len.end());
-    packet.insert(packet.end(), payload.begin(), payload.end());
-
-    conn_->write(packet);
-
-    connackHandler(conn_.get());
+    pimpl_->connect(tls);
 }
 
 void MQTTClient::close() {
-
-    stop_ = true;
-    if (thread_.joinable()) {
-        thread_.join();
-    }
-
-    if (conn_) {
-        std::vector<uint8_t> packet = {DISCONNECT, 0x00};
-        conn_->write(packet);
-        conn_->close();
-    }
+    pimpl_->close();
 }
 
 void MQTTClient::subscribe(const std::string& topic, const std::function<void(std::string)>& callback) {
-
-    if (!conn_) {
-        throw std::runtime_error("MQTTClient: not connected");
-    }
-
-    std::vector<uint8_t> payload;
-    payload.push_back(0x00);// Packet ID MSB
-    payload.push_back(0x01);// Packet ID LSB
-
-    auto t = encodeShortString(topic);
-    payload.insert(payload.end(), t.begin(), t.end());
-    payload.push_back(0x00);// QoS 0
-
-    std::vector<uint8_t> packet = {SUBSCRIBE};
-    auto len = encodeRemainingLength(payload.size());
-    packet.insert(packet.end(), len.begin(), len.end());
-    packet.insert(packet.end(), payload.begin(), payload.end());
-
-    conn_->write(packet);
-    callbacks_.emplace(topic, callback);
+    pimpl_->subscribe(topic, callback);
 }
 
 void MQTTClient::unsubscribe(const std::string& topic) {
-
-    if (!conn_) return;
-
-    // Packet Identifier (non‑zero, wraps)
-    static uint16_t pid = 1;
-    if (++pid == 0) ++pid;
-
-    // Payload: Packet Identifier + Topic Filter (MQTT short string)
-    std::vector<uint8_t> payload;
-    payload.push_back(static_cast<uint8_t>(pid >> 8));
-    payload.push_back(static_cast<uint8_t>(pid & 0xFF));
-
-    auto t = encodeShortString(topic);
-    payload.insert(payload.end(), t.begin(), t.end());
-
-    std::vector<uint8_t> packet = {UNSUBSCRIBE};
-    const auto len = encodeRemainingLength(payload.size());
-    packet.insert(packet.end(), len.begin(), len.end());
-    packet.insert(packet.end(), payload.begin(), payload.end());
-
-    conn_->write(packet);
-    callbacks_.erase(topic);
+    pimpl_->unsubscribe(topic);
 }
 
 void MQTTClient::publish(const std::string& topic, const std::string& message) {
 
-    if (!conn_) {
-        throw std::runtime_error("MQTTClient: not connected");
-    }
-
-    auto t = encodeShortString(topic);
-    std::vector<uint8_t> payload;
-    payload.insert(payload.end(), t.begin(), t.end());
-    payload.insert(payload.end(), message.begin(), message.end());
-
-    std::vector<uint8_t> packet = {PUBLISH};
-    auto len = encodeRemainingLength(payload.size());
-    packet.insert(packet.end(), len.begin(), len.end());
-    packet.insert(packet.end(), payload.begin(), payload.end());
-
-    conn_->write(packet);
+    pimpl_->publish(topic, message);
 }
 
 void MQTTClient::run() {
-
-    if (!conn_) {
-        throw std::runtime_error("MQTTClient: not connected");
-    }
-
-    thread_ = std::thread([this] {
-        while (!stop_) {
-            // Fixed header: byte 1
-            uint8_t header1 = 0;
-            if (!conn_->readExact(&header1, 1)) break;
-
-            // Remaining Length (MQTT varint, 1..4 bytes)
-            size_t remLen = 0;
-            size_t multiplier = 1;
-            for (int i = 0; i < 4; ++i) {
-                uint8_t enc = 0;
-                if (!conn_->readExact(&enc, 1)) return;
-                remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
-                if ((enc & 0x80) == 0) break;
-                multiplier *= 128;
-                if (i == 3) return;// malformed Remaining Length
-            }
-
-            // Read remaining bytes (variable header + payload)
-            std::vector<uint8_t> payload(remLen);
-            if (remLen > 0 && !conn_->readExact(payload.data(), payload.size())) break;
-
-            const uint8_t packetType = header1 & 0xF0;
-            const uint8_t flags = header1 & 0x0F;
-
-            if (packetType == PINGRESP) {
-                // Must have RL=0; ignore payload if any and mark acked
-                continue;
-            }
-
-            if (packetType == PUBLISH) {
-                size_t pos = 0;
-
-                // Topic length (2 bytes)
-                if (payload.size() < 2) continue;// malformed
-                const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
-                pos += 2;
-
-                // Bounds check before constructing the topic string
-                if (pos + topicLen > payload.size()) continue;// avoid crash
-                const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
-                std::string topic(topicPtr, topicLen);
-                pos += topicLen;
-
-                // Skip Packet Identifier for QoS > 0
-                const auto qos = static_cast<uint8_t>((flags >> 1) & 0x03);
-                if (qos > 0) {
-                    if (pos + 2 > payload.size()) continue;// malformed
-                    pos += 2;
-                }
-
-                // Remaining is the application message
-                if (pos > payload.size()) continue;
-                const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
-                const std::string msg(msgPtr, payload.size() - pos);
-
-                if (callbacks_.contains(topic)) {
-                    callbacks_.at(topic)(msg);
-                }
-            }
-        }
-    });
+    pimpl_->run();
 }
 
 MQTTClient::~MQTTClient() {
