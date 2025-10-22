@@ -10,7 +10,6 @@ using namespace simple_socket;
 
 namespace {
 
-
     enum PacketType {
         CONNECT = 0x10,
         CONNACK = 0x20,
@@ -43,10 +42,12 @@ namespace {
 
 }// namespace
 
-MQTTClient::MQTTClient(const std::string& host, int port, std::string clientId)
-    : conn_(ctx_.connect(host, port)), clientId_(std::move(clientId)) {}
+MQTTClient::MQTTClient(std::string host, int port, std::string clientId)
+    : host_(std::move(host)), port_(port), clientId_(std::move(clientId)) {}
 
 void MQTTClient::connect() {
+
+    conn_ = ctx_.connect(host_, port_);
 
     std::vector<uint8_t> payload = encodeString("MQTT");// protocol name
     payload.push_back(0x04);                            // version 3.1.1
@@ -66,13 +67,27 @@ void MQTTClient::connect() {
     std::array<uint8_t, 4> buffer{};
     conn_->readExact(buffer);
     if (buffer[0] == CONNACK && buffer[3] == 0x00) {
-        std::cout << "✅ Connected to broker." << std::endl;
-    } else {
-        std::cerr << "❌ Connection failed." << std::endl;
+        return;
+    }
+
+    throw std::runtime_error("MQTT connection failed");
+}
+
+void MQTTClient::close() {
+
+    stop_ = true;
+    if (thread_.joinable()) {
+        thread_.join();
+    }
+
+    if (conn_) {
+        std::vector<uint8_t> packet = {DISCONNECT, 0x00};
+        conn_->write(packet);
+        conn_->close();
     }
 }
 
-void MQTTClient::subscribe(const std::string& topic) {
+void MQTTClient::subscribe(const std::string& topic, const std::function<void(std::string)>& callback) {
     std::vector<uint8_t> payload;
     payload.push_back(0x00);// Packet ID MSB
     payload.push_back(0x01);// Packet ID LSB
@@ -87,7 +102,8 @@ void MQTTClient::subscribe(const std::string& topic) {
     packet.insert(packet.end(), payload.begin(), payload.end());
 
     conn_->write(packet);
-    std::cout << "📡 Subscribed to topic: " << topic << std::endl;
+
+    callbacks_.emplace(topic, callback);
 }
 
 void MQTTClient::publish(const std::string& topic, const std::string& message) {
@@ -102,61 +118,69 @@ void MQTTClient::publish(const std::string& topic, const std::string& message) {
     packet.insert(packet.end(), payload.begin(), payload.end());
 
     conn_->write(packet);
-    std::cout << "➡️  Published: " << message << " → " << topic << std::endl;
 }
 
-void MQTTClient::loop() {
-   while (true) {
-        // Fixed header: byte 1
-        uint8_t header1 = 0;
-        if (!conn_->readExact(&header1, 1)) break;
+void MQTTClient::run() {
 
-        // Remaining Length (MQTT varint, 1..4 bytes)
-        size_t remLen = 0;
-        size_t multiplier = 1;
-        for (int i = 0; i < 4; ++i) {
-            uint8_t enc = 0;
-            if (!conn_->readExact(&enc, 1)) return;
-            remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
-            if ((enc & 0x80) == 0) break;
-            multiplier *= 128;
-            if (i == 3) return; // malformed Remaining Length
-        }
+    thread_ = std::thread([this] {
+        while (!stop_) {
+            // Fixed header: byte 1
+            uint8_t header1 = 0;
+            if (!conn_->readExact(&header1, 1)) break;
 
-        // Read remaining bytes (variable header + payload)
-        std::vector<uint8_t> payload(remLen);
-        if (remLen > 0 && !conn_->readExact(payload.data(), payload.size())) break;
-
-        const uint8_t packetType = header1 & 0xF0;
-        const uint8_t flags = header1 & 0x0F;
-
-        if (packetType == PUBLISH) {
-            size_t pos = 0;
-
-            // Topic length (2 bytes)
-            if (payload.size() < 2) continue; // malformed
-            const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
-            pos += 2;
-
-            // Bounds check before constructing the topic string
-            if (pos + topicLen > payload.size()) continue; // avoid crash
-            const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
-            std::string topic(topicPtr, topicLen);
-            pos += topicLen;
-
-            // Skip Packet Identifier for QoS > 0
-            const uint8_t qos = static_cast<uint8_t>((flags >> 1) & 0x03);
-            if (qos > 0) {
-                if (pos + 2 > payload.size()) continue; // malformed
-                pos += 2;
+            // Remaining Length (MQTT varint, 1..4 bytes)
+            size_t remLen = 0;
+            size_t multiplier = 1;
+            for (int i = 0; i < 4; ++i) {
+                uint8_t enc = 0;
+                if (!conn_->readExact(&enc, 1)) return;
+                remLen += static_cast<size_t>(enc & 0x7F) * multiplier;
+                if ((enc & 0x80) == 0) break;
+                multiplier *= 128;
+                if (i == 3) return;// malformed Remaining Length
             }
 
-            // Remaining is the application message
-            if (pos > payload.size()) continue;
-            const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
-            std::string msg(msgPtr, payload.size() - pos);
+            // Read remaining bytes (variable header + payload)
+            std::vector<uint8_t> payload(remLen);
+            if (remLen > 0 && !conn_->readExact(payload.data(), payload.size())) break;
 
-            std::cout << "📥 Message on [" << topic << "]: " << msg << std::endl;
+            const uint8_t packetType = header1 & 0xF0;
+            const uint8_t flags = header1 & 0x0F;
+
+            if (packetType == PUBLISH) {
+                size_t pos = 0;
+
+                // Topic length (2 bytes)
+                if (payload.size() < 2) continue;// malformed
+                const uint16_t topicLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
+                pos += 2;
+
+                // Bounds check before constructing the topic string
+                if (pos + topicLen > payload.size()) continue;// avoid crash
+                const char* topicPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                std::string topic(topicPtr, topicLen);
+                pos += topicLen;
+
+                // Skip Packet Identifier for QoS > 0
+                const auto qos = static_cast<uint8_t>((flags >> 1) & 0x03);
+                if (qos > 0) {
+                    if (pos + 2 > payload.size()) continue;// malformed
+                    pos += 2;
+                }
+
+                // Remaining is the application message
+                if (pos > payload.size()) continue;
+                const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
+                std::string msg(msgPtr, payload.size() - pos);
+
+                if (callbacks_.contains(topic)) {
+                    callbacks_.at(topic)(msg);
+                }
+            }
         }
-    }
+    });
+}
+
+MQTTClient::~MQTTClient() {
+    close();
 }

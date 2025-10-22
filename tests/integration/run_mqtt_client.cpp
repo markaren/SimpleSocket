@@ -11,9 +11,11 @@ int main() {
     try {
         MQTTClient client("test.mosquitto.org", 1883, "SimpleSocketClient");
         client.connect();
-        client.subscribe("ecos/test");
+        client.subscribe("ecos/test", [](const auto& msg) {
+            std::cout << "Got: " << msg << std::endl;
+        });
 
-        bool stop = false;
+        std::atomic_bool stop = false;
         std::thread([&client, &stop] {
             while (!stop) {
                 std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -21,7 +23,13 @@ int main() {
             }
         }).detach();
 
-        client.loop();
+        client.run();
+
+        std::cout << "Press Any key to exit..." << std::endl;
+        std::cin.get();
+        stop = true;
+        client.close();
+
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
