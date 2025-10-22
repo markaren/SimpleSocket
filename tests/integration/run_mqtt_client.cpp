@@ -1,6 +1,6 @@
 
-#include "../../include/simple_socket/mqtt/MQTTClient.hpp"
-#include "../../include/simple_socket/mqtt/MQTTServer.hpp"
+#include "simple_socket/mqtt/MQTTClient.hpp"
+#include "simple_socket/mqtt/MQTTServer.hpp"
 
 #include <chrono>
 #include <iostream>
