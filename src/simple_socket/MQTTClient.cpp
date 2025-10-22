@@ -16,6 +16,8 @@ namespace {
         PUBLISH = 0x30,
         SUBSCRIBE = 0x82,
         SUBACK = 0x90,
+        UNSUBSCRIBE = 0xA2,
+        UNSUBACK = 0xB0,
         PINGREQ = 0xC0,
         PINGRESP = 0xD0,
         DISCONNECT = 0xE0
@@ -77,7 +79,7 @@ namespace {
             throw std::runtime_error("MQTT: failed to read CONNACK payload");
         }
 
-        const uint8_t sessionPresent = static_cast<uint8_t>(vh[0] & 0x01);
+        const auto sessionPresent = static_cast<uint8_t>(vh[0] & 0x01);
         const uint8_t rc = vh[1];// Return Code (v3.1.1) or Reason Code (v5)
 
         if (rc == 0x00) {
@@ -86,7 +88,7 @@ namespace {
             return;
         }
 
-        auto reasonText = [](uint8_t code) -> const char* {
+        auto reasonText = [](uint8_t code) -> std::string {
             switch (code) {
                 case 0x01:
                     return "unacceptable protocol version";
@@ -170,7 +172,6 @@ void MQTTClient::subscribe(const std::string& topic, const std::function<void(st
     packet.insert(packet.end(), payload.begin(), payload.end());
 
     conn_->write(packet);
-
     callbacks_.emplace(topic, callback);
 }
 
@@ -190,15 +191,12 @@ void MQTTClient::unsubscribe(const std::string& topic) {
     auto t = encodeShortString(topic);
     payload.insert(payload.end(), t.begin(), t.end());
 
-    // Fixed header: UNSUBSCRIBE (0xA2) + Remaining Length
-    std::vector packet = {static_cast<uint8_t>(0xA2)};
+    std::vector<uint8_t> packet = {UNSUBSCRIBE};
     const auto len = encodeRemainingLength(payload.size());
     packet.insert(packet.end(), len.begin(), len.end());
     packet.insert(packet.end(), payload.begin(), payload.end());
 
     conn_->write(packet);
-
-    // Remove local handler
     callbacks_.erase(topic);
 }
 
@@ -252,6 +250,11 @@ void MQTTClient::run() {
             const uint8_t packetType = header1 & 0xF0;
             const uint8_t flags = header1 & 0x0F;
 
+            if (packetType == PINGRESP) {
+                // Must have RL=0; ignore payload if any and mark acked
+                continue;
+            }
+
             if (packetType == PUBLISH) {
                 size_t pos = 0;
 
@@ -276,7 +279,7 @@ void MQTTClient::run() {
                 // Remaining is the application message
                 if (pos > payload.size()) continue;
                 const char* msgPtr = reinterpret_cast<const char*>(payload.data() + pos);
-                std::string msg(msgPtr, payload.size() - pos);
+                const std::string msg(msgPtr, payload.size() - pos);
 
                 if (callbacks_.contains(topic)) {
                     callbacks_.at(topic)(msg);
