@@ -1,5 +1,5 @@
 
-#include "simple_socket/mqtt/MQTTServer.hpp"
+#include "simple_socket/mqtt/MQTTBroker.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/mqtt/mqtt_common.hpp"
@@ -15,7 +15,7 @@
 using namespace simple_socket;
 
 
-struct MQTTServer::Impl {
+struct MQTTBroker::Impl {
 
     explicit Impl(int port)
         : server_(port), stop_(false) {}
@@ -155,7 +155,7 @@ private:
                         packet.insert(packet.end(), pl.begin(), pl.end());
 
                         for (auto* sub : targets) {
-                            // std::cout << "MQTTServer: delivering message on topic '" << topic << "' to client '" << sub->clientId << "'" << std::endl;
+                            // std::cout << "MQTTBroker: delivering message on topic '" << topic << "' to client '" << sub->clientId << "'" << std::endl;
                             sub->conn->write(packet);
                         }
                     } break;
@@ -249,17 +249,17 @@ private:
 };
 
 
-MQTTServer::MQTTServer(int port)
+MQTTBroker::MQTTBroker(int port)
     : pimpl_(std::make_unique<Impl>(port)) {}
 
-void MQTTServer::start() {
+void MQTTBroker::start() {
     pimpl_->start();
 }
 
-void MQTTServer::stop() {
+void MQTTBroker::stop() {
     pimpl_->stop();
 }
 
-MQTTServer::~MQTTServer() {
+MQTTBroker::~MQTTBroker() {
     stop();
 }

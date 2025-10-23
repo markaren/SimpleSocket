@@ -17,7 +17,7 @@ set(publicHeaders
         "simple_socket/modbus/ModbusServer.hpp"
 
         "simple_socket/mqtt/MQTTClient.hpp"
-        "simple_socket/mqtt/MQTTServer.hpp"
+        "simple_socket/mqtt/MQTTBroker.hpp"
 
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
@@ -49,7 +49,7 @@ set(sources
         "simple_socket/modbus/ModbusServer.cpp"
 
         "simple_socket/mqtt/MQTTClient.cpp"
-        "simple_socket/mqtt/MQTTServer.cpp"
+        "simple_socket/mqtt/MQTTBroker.cpp"
 
         "simple_socket/util/port_query.cpp"
 

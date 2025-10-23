@@ -5,20 +5,20 @@
 #include <memory>
 
 namespace simple_socket {
-    class MQTTServer {
+    class MQTTBroker {
     public:
-        explicit MQTTServer(int port);
+        explicit MQTTBroker(int port);
 
         void start();
 
         void stop();
 
-        ~MQTTServer();
+        ~MQTTBroker();
 
     private:
         struct Impl;
         std::unique_ptr<Impl> pimpl_;
     };
-}
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_MQTTSERVER_HPP
