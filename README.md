@@ -10,7 +10,7 @@ Supports:
 * WebSockets
 * HTTP fetcher
 * Modbus [TCP]
-* MQTT client [TCP]
+* MQTT [TCP]
 
 
 SimpleSocket supports TLS via openssl. 
