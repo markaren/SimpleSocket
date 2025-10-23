@@ -64,12 +64,12 @@ struct TCPServer::Impl {
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(port);
 
-        if (::bind(socket.sockfd_, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
+        if (::bind(socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
 
             throwSocketError("Bind failed");
         }
 
-        if (::listen(socket.sockfd_, backlog) < 0) {
+        if (::listen(socket, backlog) < 0) {
 
             throwSocketError("Listen failed");
         }
@@ -78,7 +78,7 @@ struct TCPServer::Impl {
     std::unique_ptr<SimpleConnection> accept() {
         sockaddr_in client_addr{};
         socklen_t addrlen = sizeof(client_addr);
-        SOCKET new_sock = ::accept(socket.sockfd_, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
+        SOCKET new_sock = ::accept(socket, reinterpret_cast<sockaddr*>(&client_addr), &addrlen);
 
         if (new_sock == INVALID_SOCKET) {
 

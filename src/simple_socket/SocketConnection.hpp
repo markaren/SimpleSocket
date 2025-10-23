@@ -43,6 +43,11 @@ namespace simple_socket {
             SocketConnection::close();
         }
 
+        operator SOCKET() const {
+            return sockfd_;
+        }
+
+    private:
         SOCKET sockfd_;
     };
 

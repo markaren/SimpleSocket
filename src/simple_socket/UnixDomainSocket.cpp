@@ -44,12 +44,12 @@ struct UnixDomainServer::Impl {
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, domain.c_str(), sizeof(addr.sun_path) - 1);
 
-        if (::bind(socket.sockfd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+        if (::bind(socket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
 
             throwSocketError("Bind failed");
         }
 
-        if (::listen(socket.sockfd_, backlog) < 0) {
+        if (::listen(socket, backlog) < 0) {
 
             throwSocketError("Listen failed");
         }
@@ -57,7 +57,7 @@ struct UnixDomainServer::Impl {
 
     std::unique_ptr<SocketConnection> accept() {
 
-        SOCKET new_sock = ::accept(socket.sockfd_, nullptr, nullptr);
+        SOCKET new_sock = ::accept(socket, nullptr, nullptr);
         if (new_sock == INVALID_SOCKET) {
 
             throwSocketError("Accept failed");
