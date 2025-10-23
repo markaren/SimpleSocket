@@ -1,5 +1,4 @@
 
-#include "simple_socket/mqtt/MQTTBroker.hpp"
 #include "simple_socket/mqtt/MQTTClient.hpp"
 
 #include <chrono>

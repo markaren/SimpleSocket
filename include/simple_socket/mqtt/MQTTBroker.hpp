@@ -5,6 +5,7 @@
 #include <memory>
 
 namespace simple_socket {
+
     class MQTTBroker {
     public:
         explicit MQTTBroker(int port);
