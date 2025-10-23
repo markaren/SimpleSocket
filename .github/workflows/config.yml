@@ -1,7 +1,6 @@
-
 name: Build
 
-on: [push, workflow_dispatch]
+on: [ push, workflow_dispatch ]
 
 jobs:
   linux:
@@ -60,6 +59,30 @@ jobs:
           cd build/tests
           ctest --output-on-failure
 
+  linux-minimal:
+
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: gcc-${{ matrix.compiler_version }}
+      CXX: g++-${{ matrix.compiler_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04 ]
+        compiler_version: [ 11 ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure and build
+        run: |
+          cmake . -B build -DSIMPLE_SOCKET_BUILD_TESTS=ON -DSIMPLE_SOCKET_WITH_TLS=OFF -DSIMPLE_SOCKET_WITH_MQTT=OFF -DSIMPLE_SOCKET_WITH_MODBUS=OFF -DCMAKE_BUILD_TYPE="Release"
+          cmake --build build
+
+      - name: Test
+        run: |
+          cd build/tests
+          ctest --output-on-failure
 
   windows:
 
@@ -67,7 +90,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
+        os: [ windows-2022 ]
 
     steps:
       - uses: actions/checkout@v3
@@ -89,12 +112,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        os: [ macos-14 ]
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Configure and build
         run: |
-          cmake . -B build -DSIMPLE_SOCKET_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE="Release"
+          cmake . -B build -DSIMPLE_SOCKET_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE="Release"
           cmake --build build
