@@ -11,11 +11,6 @@ set(publicHeaders
         "simple_socket/UnixDomainSocket.hpp"
         "simple_socket/WebSocket.hpp"
 
-        "simple_socket/modbus/HoldingRegister.hpp"
-        "simple_socket/modbus/ModbusClient.hpp"
-        "simple_socket/modbus/modbus_helper.hpp"
-        "simple_socket/modbus/ModbusServer.hpp"
-
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
 )
@@ -39,15 +34,27 @@ set(sources
         "simple_socket/UDPSocket.cpp"
         "simple_socket/UnixDomainSocket.cpp"
 
-        "simple_socket/modbus/HoldingRegister.cpp"
-        "simple_socket/modbus/ModbusClient.cpp"
-        "simple_socket/modbus/ModbusServer.cpp"
-
         "simple_socket/util/port_query.cpp"
 
         "simple_socket/ws/WebSocket.cpp"
         "simple_socket/ws/WebSocketClient.cpp"
 )
+
+if (SIMPLE_SOCKET_WITH_MODBUS)
+
+    list(APPEND publicHeaders
+            "simple_socket/modbus/HoldingRegister.hpp"
+            "simple_socket/modbus/ModbusClient.hpp"
+            "simple_socket/modbus/modbus_helper.hpp"
+            "simple_socket/modbus/ModbusServer.hpp"
+    )
+
+    list(APPEND sources
+            "simple_socket/modbus/HoldingRegister.cpp"
+            "simple_socket/modbus/ModbusClient.cpp"
+            "simple_socket/modbus/ModbusServer.cpp"
+    )
+endif ()
 
 if (SIMPLE_SOCKET_WITH_MQTT)
 
