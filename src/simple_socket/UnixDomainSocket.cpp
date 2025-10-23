@@ -1,7 +1,7 @@
 
 #include "simple_socket/UnixDomainSocket.hpp"
 
-#include "simple_socket/Socket.hpp"
+#include "simple_socket/SocketConnection.hpp"
 
 #ifdef _WIN32
 #include <afunix.h>
@@ -55,7 +55,7 @@ struct UnixDomainServer::Impl {
         }
     }
 
-    std::unique_ptr<Socket> accept() {
+    std::unique_ptr<SocketConnection> accept() {
 
         SOCKET new_sock = ::accept(socket.sockfd_, nullptr, nullptr);
         if (new_sock == INVALID_SOCKET) {
@@ -63,7 +63,7 @@ struct UnixDomainServer::Impl {
             throwSocketError("Accept failed");
         }
 
-        return std::make_unique<Socket>(new_sock);
+        return std::make_unique<SocketConnection>(new_sock);
     }
 
     void close() {
@@ -80,7 +80,7 @@ private:
     WSASession session;
 #endif
 
-    Socket socket;
+    SocketConnection socket;
     std::string domain;
 };
 
@@ -111,7 +111,7 @@ std::unique_ptr<SimpleConnection> UnixDomainClientContext::connect(const std::st
 
     if (::connect(sockfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) >= 0) {
 
-        return std::make_unique<Socket>(sockfd);
+        return std::make_unique<SocketConnection>(sockfd);
     }
 
     return nullptr;

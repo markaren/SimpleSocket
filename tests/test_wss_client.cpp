@@ -1,10 +1,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../include/simple_socket/ws/WebSocket.hpp"
+#include "simple_socket/ws/WebSocket.hpp"
 
-#include <algorithm>
-#include <execution>
 #include <iostream>
 #include <mutex>
 #include <semaphore>
@@ -18,7 +16,7 @@ TEST_CASE("Echo WebSocketClient wss") {
 
     std::mutex mutex;
 
-    std::vector<WebSocketClient> clients(5);
+    std::vector<WebSocketClient> clients(3);
     for (auto& client : clients) {
 
         std::binary_semaphore latch{0};

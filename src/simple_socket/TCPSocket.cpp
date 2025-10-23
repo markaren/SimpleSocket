@@ -2,14 +2,17 @@
 #include "simple_socket/TCPSocket.hpp"
 
 #include "simple_socket/SimpleConnection.hpp"
-#include "simple_socket/Socket.hpp"
-
+#include "simple_socket/SocketConnection.hpp"
 
 #ifdef _WIN32
 #include <ws2def.h>
 #else
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
+
+#ifdef SIMPLE_SOCKET_WITH_TLS
+#include "simple_socket/tls/TLSConnection.hpp"
 #endif
 
 
@@ -82,7 +85,7 @@ struct TCPServer::Impl {
             throwSocketError("Accept failed");
         }
 
-        return std::make_unique<Socket>(new_sock);
+        return std::make_unique<SocketConnection>(new_sock);
     }
 
     void close() {
@@ -95,7 +98,7 @@ private:
     WSASession session;
 #endif
 
-    Socket socket;
+    SocketConnection socket;
 };
 
 TCPServer::TCPServer(uint16_t port, int backlog)
@@ -142,29 +145,12 @@ TCPServer::~TCPServer() = default;
     }
     if (useTLS) {
 #ifdef SIMPLE_SOCKET_WITH_TLS
-
-        SSL_library_init();
-        SSL_load_error_strings();
-        const SSL_METHOD* method = TLS_client_method();
-        SSL_CTX* ctx = SSL_CTX_new(method);
-        if (!ctx) return nullptr;
-
-        SSL* ssl = SSL_new(ctx);
-        SSL_set_fd(ssl, static_cast<int>(sock));
-        SSL_set_tlsext_host_name(ssl, ip.c_str());
-        if (SSL_connect(ssl) <= 0) {
-            ERR_print_errors_fp(stderr);
-            SSL_free(ssl);
-            SSL_CTX_free(ctx);
-            closeSocket(sock);
-            return nullptr;
-        }
-        return std::make_unique<TLSConnection>(sock, ssl, ctx);
+        return std::make_unique<TLSConnection>(sock, ip);
 #else
         throw std::runtime_error("TLS support is not enabled in this build.");
 #endif
     }
-    return std::make_unique<Socket>(sock);
+    return std::make_unique<SocketConnection>(sock);
 }
 
 std::unique_ptr<SimpleConnection> TCPClientContext::connect(const std::string& host) {

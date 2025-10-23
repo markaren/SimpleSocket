@@ -15,7 +15,9 @@ set(publicHeaders
 
 set(privateHeaders
         "simple_socket/socket_common.hpp"
-        "simple_socket/Socket.hpp"
+        "simple_socket/SocketConnection.hpp"
+
+        "simple_socket/tls/TLSConnection.hpp"
 
         "simple_socket/util/uuid.hpp"
 )
