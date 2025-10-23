@@ -3,6 +3,7 @@ project(simple_socket VERSION 0.4.0)
 
 option(SIMPLE_SOCKET_BUILD_TESTS OFF)
 option(SIMPLE_SOCKET_WITH_TLS "Enable TLS (OpenSSL) for WSS" OFF)
+option(SIMPLE_SOCKET_WITH_MQTT "Enable MQTT support" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
