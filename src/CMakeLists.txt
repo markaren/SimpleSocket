@@ -16,9 +16,6 @@ set(publicHeaders
         "simple_socket/modbus/modbus_helper.hpp"
         "simple_socket/modbus/ModbusServer.hpp"
 
-        "simple_socket/mqtt/MQTTClient.hpp"
-        "simple_socket/mqtt/MQTTBroker.hpp"
-
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
 )
@@ -26,8 +23,6 @@ set(publicHeaders
 set(privateHeaders
         "simple_socket/socket_common.hpp"
         "simple_socket/Socket.hpp"
-
-        "simple_socket/mqtt/mqtt_common.hpp"
 
         "simple_socket/util/uuid.hpp"
 
@@ -48,14 +43,28 @@ set(sources
         "simple_socket/modbus/ModbusClient.cpp"
         "simple_socket/modbus/ModbusServer.cpp"
 
-        "simple_socket/mqtt/MQTTClient.cpp"
-        "simple_socket/mqtt/MQTTBroker.cpp"
-
         "simple_socket/util/port_query.cpp"
 
         "simple_socket/ws/WebSocket.cpp"
         "simple_socket/ws/WebSocketClient.cpp"
 )
+
+if (SIMPLE_SOCKET_WITH_MQTT)
+
+    list(APPEND publicHeaders
+            "simple_socket/mqtt/MQTTClient.hpp"
+            "simple_socket/mqtt/MQTTBroker.hpp"
+    )
+
+    list(APPEND privateHeaders
+            "simple_socket/mqtt/mqtt_common.hpp"
+    )
+
+    list(APPEND sources
+            "simple_socket/mqtt/MQTTClient.cpp"
+            "simple_socket/mqtt/MQTTBroker.cpp"
+    )
+endif ()
 
 set(publicHeadersFull)
 foreach (header IN LISTS publicHeaders)
