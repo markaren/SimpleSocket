@@ -35,9 +35,12 @@ add_executable(test_port_query test_port_query.cpp)
 add_test(NAME test_port_query COMMAND test_port_query)
 target_link_libraries(test_port_query PRIVATE simple_socket Catch2::Catch2WithMain)
 
-add_executable(test_shared_memory test_shared_memory.cpp)
-target_link_libraries(test_shared_memory PRIVATE simple_socket Catch2::Catch2WithMain)
-add_test(NAME test_shared_memory COMMAND test_shared_memory)
+
+if (SIMPLE_SOCKET_WITH_MEMORY)
+    add_executable(test_shared_memory test_shared_memory.cpp)
+    target_link_libraries(test_shared_memory PRIVATE simple_socket Catch2::Catch2WithMain)
+    add_test(NAME test_shared_memory COMMAND test_shared_memory)
+endif ()
 
 
 if (UNIX)

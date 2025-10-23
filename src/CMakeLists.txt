@@ -2,7 +2,6 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 
 set(publicHeaders
 
-        "simple_socket/SharedMemoryConnection.hpp"
         "simple_socket/SimpleConnection.hpp"
         "simple_socket/SimpleHttpFetcher.hpp"
         "simple_socket/SocketContext.hpp"
@@ -27,7 +26,6 @@ set(privateHeaders
 )
 
 set(sources
-        "simple_socket/SharedMemoryConnection.cpp"
         "simple_socket/SimpleHttpFetcher.cpp"
         "simple_socket/SocketContext.cpp"
         "simple_socket/TCPSocket.cpp"
@@ -39,6 +37,17 @@ set(sources
         "simple_socket/ws/WebSocket.cpp"
         "simple_socket/ws/WebSocketClient.cpp"
 )
+
+if (SIMPLE_SOCKET_WITH_MEMORY)
+
+    list(APPEND publicHeaders
+            "simple_socket/SharedMemoryConnection.hpp"
+    )
+
+    list(APPEND sources
+            "simple_socket/SharedMemoryConnection.cpp"
+    )
+endif ()
 
 if (SIMPLE_SOCKET_WITH_MODBUS)
 
