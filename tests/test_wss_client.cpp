@@ -3,20 +3,25 @@
 
 #include "simple_socket/WebSocket.hpp"
 
-#include <chrono>
+#include <algorithm>
+#include <execution>
 #include <iostream>
+#include <mutex>
 #include <semaphore>
 #include <thread>
+#include <vector>
 
 
 using namespace simple_socket;
-using namespace std::chrono_literals;
 
 TEST_CASE("Echo WebSocketClient wss") {
-    for (int i = 0; i < 5; ++i) {
-        std::binary_semaphore latch{0};
 
-        WebSocketClient client;
+    std::mutex mutex;
+
+    std::vector<WebSocketClient> clients(5);
+    for (auto& client : clients) {
+
+        std::binary_semaphore latch{0};
         std::string ping = "Hello, WebSocket!";
 
         client.onOpen = [&](WebSocketConnection* ws) {
@@ -25,13 +30,17 @@ TEST_CASE("Echo WebSocketClient wss") {
         };
 
         client.onMessage = [&](WebSocketConnection*, const std::string& msg) {
-            std::cout << "Received message: " << msg << std::endl;
+            {
+                std::lock_guard lock(mutex);
+                std::cout << std::this_thread::get_id() << " Received message: " << msg << std::endl;
+            }
             if (msg == ping) {
                 latch.release();
             }
         };
 
         client.onClose = [&](WebSocketConnection* ws) {
+            std::lock_guard lock(mutex);
             std::cout << "Connection closed." << std::endl;
         };
 
