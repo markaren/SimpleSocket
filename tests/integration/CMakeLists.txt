@@ -8,20 +8,25 @@ target_link_libraries(run_tcp_server PRIVATE simple_socket)
 add_executable(run_tcp_client run_tcp_client.cpp)
 target_link_libraries(run_tcp_client PRIVATE simple_socket)
 
-add_executable(run_ws run_ws.cpp)
-target_link_libraries(run_ws PRIVATE simple_socket)
+if (SIMPLE_SOCKET_WITH_WEBSOCKETS)
+    add_executable(run_ws run_ws.cpp)
+    target_link_libraries(run_ws PRIVATE simple_socket)
 
-if (SIMPLE_SOCKET_WITH_TLS)
-    add_executable(run_wss run_wss.cpp)
-    target_link_libraries(run_wss PRIVATE simple_socket)
+    if (SIMPLE_SOCKET_WITH_TLS)
+        add_executable(run_wss run_wss.cpp)
+        target_link_libraries(run_wss PRIVATE simple_socket)
+    endif ()
+
+    file(COPY ws_client.html DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif ()
 
-add_executable(memory_server memory_server.cpp)
-target_link_libraries(memory_server PRIVATE simple_socket)
+if (SIMPLE_SOCKET_WITH_MEMORY)
+    add_executable(memory_server memory_server.cpp)
+    target_link_libraries(memory_server PRIVATE simple_socket)
 
-add_executable(memory_client memory_client.cpp)
-target_link_libraries(memory_client PRIVATE simple_socket)
-
+    add_executable(memory_client memory_client.cpp)
+    target_link_libraries(memory_client PRIVATE simple_socket)
+endif ()
 
 if (SIMPLE_SOCKET_WITH_MODBUS)
     add_executable(modbus_client modbus_client.cpp)
@@ -39,11 +44,3 @@ if (SIMPLE_SOCKET_WITH_MQTT)
     target_link_libraries(run_mqtt_client_broker PRIVATE simple_socket)
 endif ()
 
-
-if (UNIX)
-    target_link_libraries(run_tcp_server PRIVATE pthread)
-    target_link_libraries(run_tcp_client PRIVATE pthread)
-    target_link_libraries(run_ws PRIVATE pthread)
-endif ()
-
-file(COPY ws_client.html DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

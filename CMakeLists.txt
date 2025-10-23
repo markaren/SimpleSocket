@@ -6,6 +6,7 @@ option(SIMPLE_SOCKET_WITH_TLS "Enable TLS (OpenSSL) for WSS" OFF)
 option(SIMPLE_SOCKET_WITH_MQTT "Enable MQTT support" ON)
 option(SIMPLE_SOCKET_WITH_MODBUS "Enable Modbus support" ON)
 option(SIMPLE_SOCKET_WITH_MEMORY "Enable in-memory transport support" ON)
+option(SIMPLE_SOCKET_WITH_WEBSOCKETS "Enable WebSocket support" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 

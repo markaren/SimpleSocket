@@ -92,6 +92,7 @@ add_library(simple_socket "${publicHeadersFull}" "${privateHeaders}" "${sources}
 target_compile_features(simple_socket PUBLIC "cxx_std_20")
 if (UNIX)
     set_target_properties(simple_socket PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_link_libraries(simple_socket PRIVATE pthread)
 endif ()
 if (WIN32)
     target_link_libraries(simple_socket PRIVATE "ws2_32")
