@@ -16,6 +16,9 @@ set(publicHeaders
         "simple_socket/modbus/modbus_helper.hpp"
         "simple_socket/modbus/ModbusServer.hpp"
 
+        "simple_socket/mqtt/MQTTClient.hpp"
+        "simple_socket/mqtt/MQTTBroker.hpp"
+
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
 )
@@ -23,6 +26,9 @@ set(publicHeaders
 set(privateHeaders
         "simple_socket/socket_common.hpp"
         "simple_socket/Socket.hpp"
+
+        "simple_socket/mqtt/mqtt_common.hpp"
+
         "simple_socket/util/uuid.hpp"
 
         "simple_socket/ws/WebSocketConnection.hpp"
@@ -31,7 +37,6 @@ set(privateHeaders
 )
 
 set(sources
-        "simple_socket/MQTTClient.cpp"
         "simple_socket/SharedMemoryConnection.cpp"
         "simple_socket/SimpleHttpFetcher.cpp"
         "simple_socket/SocketContext.cpp"
@@ -39,14 +44,17 @@ set(sources
         "simple_socket/UDPSocket.cpp"
         "simple_socket/UnixDomainSocket.cpp"
 
-        "simple_socket/ws/WebSocket.cpp"
-        "simple_socket/ws/WebSocketClient.cpp"
-
         "simple_socket/modbus/HoldingRegister.cpp"
         "simple_socket/modbus/ModbusClient.cpp"
         "simple_socket/modbus/ModbusServer.cpp"
 
+        "simple_socket/mqtt/MQTTClient.cpp"
+        "simple_socket/mqtt/MQTTBroker.cpp"
+
         "simple_socket/util/port_query.cpp"
+
+        "simple_socket/ws/WebSocket.cpp"
+        "simple_socket/ws/WebSocketClient.cpp"
 )
 
 set(publicHeadersFull)

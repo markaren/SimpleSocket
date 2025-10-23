@@ -1,4 +1,5 @@
 
+#include "simple_socket/mqtt/MQTTBroker.hpp"
 #include "simple_socket/mqtt/MQTTClient.hpp"
 
 #include <chrono>
@@ -9,9 +10,13 @@ using namespace simple_socket;
 
 int main() {
 
+    int port = 1883;
+
+    MQTTBroker broker(port);
+    broker.start();
 
     try {
-        MQTTClient client("test.mosquitto.org", 1883, "SimpleSocketClient");
+        MQTTClient client("127.0.0.1", port, "SimpleSocketClient");
         client.connect(false);
 
         std::string topic1 = "simple_socket/topic1";
@@ -45,6 +50,7 @@ int main() {
         std::cin.get();
         stop = true;
         client.close();
+        broker.stop();
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
