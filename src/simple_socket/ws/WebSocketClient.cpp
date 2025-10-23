@@ -214,6 +214,11 @@ struct WebSocketClient::Impl {
         conn->send(message);
     }
 
+    void send(const uint8_t* message, size_t len) {
+
+        conn->send(message, len);
+    }
+
     void close() {
 
         conn->close(true);

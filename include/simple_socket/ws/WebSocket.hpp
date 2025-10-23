@@ -17,6 +17,8 @@ namespace simple_socket {
 
         virtual void send(const std::string& msg) = 0;
 
+        virtual void send(const uint8_t* msg, size_t len) = 0;
+
         virtual ~WebSocketConnection() = default;
 
     private:

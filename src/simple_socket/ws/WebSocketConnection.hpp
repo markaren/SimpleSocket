@@ -14,6 +14,15 @@
 
 namespace simple_socket {
 
+    enum : uint8_t {
+        WS_CONT = 0x0,
+        WS_TEXT = 0x1,
+        WS_BIN = 0x2,
+        WS_CLOSE = 0x8,
+        WS_PING = 0x9,
+        WS_PONG = 0xA
+    };
+
     struct WebSocketCallbacks {
         std::function<void(WebSocketConnection*)>& onOpen;
         std::function<void(WebSocketConnection*)>& onClose;
@@ -59,6 +68,12 @@ namespace simple_socket {
 
         void send(const std::string& message) override {
             const auto frame = buildText(message, role_);
+            std::lock_guard lg(tx_mtx_);
+            conn_->write(frame);
+        }
+
+        void send(const uint8_t* message, size_t len) override {
+            const auto frame = buildBin(message, len, role_);
             std::lock_guard lg(tx_mtx_);
             conn_->write(frame);
         }
@@ -148,100 +163,157 @@ namespace simple_socket {
         }
 
         static std::vector<uint8_t> buildText(const std::string& s, Role role) {
-            return buildFrame(0x1, reinterpret_cast<const uint8_t*>(s.data()), s.size(), role);
+            return buildFrame(WS_TEXT, reinterpret_cast<const uint8_t*>(s.data()), s.size(), role);
+        }
+
+        static std::vector<uint8_t> buildBin(const uint8_t* msg, size_t len, Role role) {
+            return buildFrame(WS_BIN, msg, len, role);
         }
 
         static std::vector<uint8_t> buildClose(uint16_t code, Role role) {
             uint8_t p[2] = {static_cast<uint8_t>(code >> 8), static_cast<uint8_t>(code & 0xFF)};
-            return buildFrame(0x8, p, 2, role);
+            return buildFrame(WS_CLOSE, p, 2, role);
         }
 
         static std::vector<uint8_t> buildPong(const std::vector<uint8_t>& payload, Role role) {
-            return buildFrame(0xA, payload.data(), payload.size(), role);
+            return buildFrame(WS_PONG, payload.data(), payload.size(), role);
         }
 
         void listen() {
+            std::vector<uint8_t> rx;     // accumulated bytes from socket
+            std::vector<uint8_t> message;// assembling fragmented messages
+            bool continued = false;
+            uint8_t startOpcode = 0;
+
             while (!closed_) {
-                const auto recv = conn_->read(buffer);
+                const int recv = conn_->read(buffer);
                 if (recv <= 0) break;
 
-                std::vector<uint8_t> frame{buffer.begin(), buffer.begin() + recv};
-                if (frame.size() < 2) continue;
+                rx.insert(rx.end(), buffer.begin(), buffer.begin() + recv);
 
-                const uint8_t b0 = frame[0];
-                const uint8_t b1 = frame[1];
-                const uint8_t opcode = b0 & 0x0F;
-                const bool isMasked = (b1 & 0x80) != 0;
-                uint64_t payloadLen = (b1 & 0x7F);
+                size_t pos = 0;
+                while (true) {
+                    if (rx.size() - pos < 2) break;
 
-                // Role‑based masking validation
-                if (role_ == Role::Server && !isMasked) {
-                    // Protocol error: client must mask; tear down
-                    std::lock_guard lg(tx_mtx_);
-                    conn_->write(buildClose(1002, role_));// 1002 protocol error
-                    break;
-                }
-                if (role_ == Role::Client && isMasked) {
-                    // Protocol error: server must not mask
-                    std::lock_guard lg(tx_mtx_);
-                    conn_->write(buildClose(1002, role_));
-                    break;
-                }
+                    const uint8_t b0 = rx[pos];
+                    const uint8_t b1 = rx[pos + 1];
+                    const bool fin = (b0 & 0x80) != 0;
+                    const uint8_t opcode = static_cast<uint8_t>(b0 & 0x0F);
+                    const bool isMasked = (b1 & 0x80) != 0;
+                    uint64_t payloadLen = (b1 & 0x7F);
 
-                size_t pos = 2;
-                if (payloadLen == 126) {
-                    if (frame.size() < 4) continue;
-                    payloadLen = (static_cast<uint64_t>(frame[2]) << 8) | frame[3];
-                    pos += 2;
-                } else if (payloadLen == 127) {
-                    if (frame.size() < 10) continue;
-                    payloadLen = 0;
-                    for (int i = 0; i < 8; ++i) payloadLen = (payloadLen << 8) | frame[2 + i];
-                    pos += 8;
-                }
+                    // Masking rules
+                    if (role_ == Role::Server && !isMasked) {
+                        std::lock_guard lg(tx_mtx_);
+                        conn_->write(buildClose(1002, role_));
+                        close(false);
+                        return;
+                    }
+                    if (role_ == Role::Client && isMasked) {
+                        std::lock_guard lg(tx_mtx_);
+                        conn_->write(buildClose(1002, role_));
+                        close(false);
+                        return;
+                    }
 
-                if (frame.size() < pos + (isMasked ? 4 : 0) + payloadLen) continue;
+                    size_t hdr = 2;
+                    if (payloadLen == 126) {
+                        if (rx.size() - pos < hdr + 2) break;
+                        payloadLen = (static_cast<uint64_t>(rx[pos + 2]) << 8) | rx[pos + 3];
+                        hdr += 2;
+                    } else if (payloadLen == 127) {
+                        if (rx.size() - pos < hdr + 8) break;
+                        payloadLen = 0;
+                        for (int i = 0; i < 8; ++i) payloadLen = (payloadLen << 8) | rx[pos + 2 + i];
+                        hdr += 8;
+                    }
 
-                uint8_t mask[4] = {0, 0, 0, 0};
-                if (isMasked)
-                    for (int i = 0; i < 4; ++i) mask[i] = frame[pos++];
+                    const size_t need = hdr + (isMasked ? 4 : 0) + payloadLen;
+                    if (rx.size() - pos < need) break;
 
-                std::vector<uint8_t> payload(frame.begin() + pos, frame.begin() + pos + payloadLen);
-                if (isMasked) {
-                    for (size_t i = 0; i < payload.size(); ++i) {
-                        payload[i] ^= mask[i & 0x03];
+                    size_t off = pos + hdr;
+                    uint8_t mask[4] = {0, 0, 0, 0};
+                    if (isMasked) {
+                        for (int i = 0; i < 4; ++i) mask[i] = rx[off + i];
+                        off += 4;
+                    }
+
+                    std::vector<uint8_t> chunk;
+                    chunk.resize(payloadLen);
+                    for (size_t i = 0; i < chunk.size(); ++i) {
+                        uint8_t b = rx[off + i];
+                        if (isMasked) b ^= mask[i & 0x03];
+                        chunk[i] = b;
+                    }
+
+                    pos = off + payloadLen;
+
+                    if (opcode == WS_CLOSE) {
+                        {
+                            std::lock_guard lg(tx_mtx_);
+                            conn_->write(buildClose(1000, role_));
+                        }
+                        close(false);
+                        return;
+                    } else if (opcode == WS_PING) {
+                        std::lock_guard lg(tx_mtx_);
+                        conn_->write(buildPong(chunk, role_));
+                        continue;
+                    } else if (opcode == WS_PONG) {
+                        continue;
+                    } else if (opcode == WS_CONT) {
+                        if (!continued) {
+                            std::lock_guard lg(tx_mtx_);
+                            conn_->write(buildClose(1002, role_));
+                            close(false);
+                            return;
+                        }
+                        message.insert(message.end(), chunk.begin(), chunk.end());
+                        if (fin) {
+                            // deliver completed fragmented message
+                            if (startOpcode == WS_TEXT) {
+                                std::string s(message.begin(), message.end());
+                                if (callbacks_.onMessage) callbacks_.onMessage(this, s);
+                            } else if (startOpcode == WS_BIN) {
+                                std::string s(reinterpret_cast<const char*>(message.data()), message.size());
+                                if (callbacks_.onMessage) callbacks_.onMessage(this, s);
+                            }
+                            message.clear();
+                            continued = false;
+                            startOpcode = 0;
+                        }
+                        continue;
+                    } else if (opcode == WS_TEXT || opcode == WS_BIN) {
+                        if (continued) {
+                            std::lock_guard lg(tx_mtx_);
+                            conn_->write(buildClose(1002, role_));
+                            close(false);
+                            return;
+                        }
+                        if (fin) {
+                            // single-frame message
+                            if (opcode == WS_TEXT) {
+                                std::string s(chunk.begin(), chunk.end());
+                                if (callbacks_.onMessage) callbacks_.onMessage(this, s);
+                            } else {
+                                std::string s(reinterpret_cast<const char*>(chunk.data()), chunk.size());
+                                if (callbacks_.onMessage) callbacks_.onMessage(this, s);
+                            }
+                        } else {
+                            // start fragmented message
+                            message = std::move(chunk);
+                            continued = true;
+                            startOpcode = opcode;
+                        }
+                        continue;
+                    } else {
+                        // Unknown opcode: ignore this frame
+                        continue;
                     }
                 }
 
-                switch (opcode) {
-                    case 0x1: {// Text
-                        std::string message(payload.begin(), payload.end());
-                        if (callbacks_.onMessage) callbacks_.onMessage(this, message);
-                    } break;
-
-                    case 0x8: {// Close
-                        // Echo a close if we didn't initiate one
-                        std::vector<uint8_t> closeResp = buildClose(1000, role_);
-                        {
-                            std::lock_guard lg(tx_mtx_);
-                            conn_->write(closeResp);
-                        }
-                        close(false);
-                    } break;
-
-                    case 0x9: {// Ping
-                        std::vector<uint8_t> pongFrame = buildPong(payload, role_);
-                        std::lock_guard lg(tx_mtx_);
-                        conn_->write(pongFrame);
-                    } break;
-
-                    case 0xA:// Pong
-                        break;
-
-                    default:
-                        std::cerr << "Unsupported opcode: " << static_cast<int>(opcode) << std::endl;
-                        break;
-                }
+                // discard parsed bytes, keep remainder for next read
+                if (pos > 0) rx.erase(rx.begin(), rx.begin() + pos);
             }
         }
     };
