@@ -4,16 +4,12 @@
 #include "simple_socket/SimpleConnection.hpp"
 #include "simple_socket/Socket.hpp"
 
-#ifdef SIMPLE_SOCKET_WITH_TLS
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-#endif
 
 #ifdef _WIN32
 #include <ws2def.h>
 #else
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #endif
 
 
@@ -57,17 +53,8 @@ namespace {
 
 struct TCPServer::Impl {
 
-    Impl(int port, int backlog, bool useTLS = false, const std::string& cert_file = "", const std::string& key_file = "")
-        : socket(createSocket()), useTLS(useTLS) {
-
-        if (useTLS) {
-#ifdef SIMPLE_SOCKET_WITH_TLS
-            initTLS(cert_file, key_file);
-#else
-            throw std::runtime_error("TLS support is not enabled in this build.");
-#endif
-        }
-
+    Impl(int port, int backlog)
+        : socket(createSocket()) {
 
         sockaddr_in serv_addr{};
         serv_addr.sin_family = AF_INET;
@@ -95,34 +82,12 @@ struct TCPServer::Impl {
             throwSocketError("Accept failed");
         }
 
-#ifdef SIMPLE_SOCKET_WITH_TLS
-        if (useTLS) {
-            SSL* ssl = SSL_new(ctx);
-            SSL_set_fd(ssl, static_cast<int>(new_sock));
-
-            if (SSL_accept(ssl) <= 0) {
-                ERR_print_errors_fp(stderr);
-                SSL_free(ssl);
-                closeSocket(new_sock);
-                throw std::runtime_error("TLS handshake failed");
-            }
-
-            return std::make_unique<TLSConnection>(new_sock, ssl);
-        }
-#endif
-
         return std::make_unique<Socket>(new_sock);
     }
 
     void close() {
 
         socket.close();
-#ifdef SIMPLE_SOCKET_WITH_TLS
-        if (ctx) {
-            SSL_CTX_free(ctx);
-            ctx = nullptr;
-        }
-#endif
     }
 
 private:
@@ -131,33 +96,10 @@ private:
 #endif
 
     Socket socket;
-    bool useTLS{false};
-#ifdef SIMPLE_SOCKET_WITH_TLS
-    SSL_CTX* ctx = nullptr;
-
-    void initTLS(const std::string& cert_file, const std::string& key_file) {
-        SSL_load_error_strings();
-        OpenSSL_add_ssl_algorithms();
-
-        const SSL_METHOD* method = TLS_server_method();
-        ctx = SSL_CTX_new(method);
-        if (!ctx)
-            throw std::runtime_error("Failed to create SSL_CTX");
-
-        if (SSL_CTX_use_certificate_file(ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0)
-            throw std::runtime_error("Failed to load certificate");
-
-        if (SSL_CTX_use_PrivateKey_file(ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0)
-            throw std::runtime_error("Failed to load private key");
-
-        if (!SSL_CTX_check_private_key(ctx))
-            throw std::runtime_error("Private key does not match certificate");
-    }
-#endif
 };
 
-TCPServer::TCPServer(uint16_t port, int backlog, bool useTLS, const std::string& cert_file, const std::string& key_file)
-    : pimpl_(std::make_unique<Impl>(port, backlog, useTLS, cert_file, key_file)) {}
+TCPServer::TCPServer(uint16_t port, int backlog)
+    : pimpl_(std::make_unique<Impl>(port, backlog)) {}
 
 [[nodiscard]] std::unique_ptr<SimpleConnection> TCPServer::accept() {
 

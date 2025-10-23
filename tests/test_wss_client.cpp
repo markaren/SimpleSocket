@@ -1,7 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "simple_socket/WebSocket.hpp"
+#include "../include/simple_socket/ws/WebSocket.hpp"
 
 #include <algorithm>
 #include <execution>

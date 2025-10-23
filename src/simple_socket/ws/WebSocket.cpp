@@ -1,5 +1,5 @@
 
-#include "simple_socket/WebSocket.hpp"
+#include "simple_socket/ws/WebSocket.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/socket_common.hpp"
@@ -109,8 +109,8 @@ namespace {
 
 struct WebSocket::Impl {
 
-    explicit Impl(WebSocket* scope, uint16_t port, const std::string& cert_file = "", const std::string& key_file = "")
-        : scope(scope), socket(port, 1, !cert_file.empty() && !key_file.empty(), cert_file, key_file) {}
+    explicit Impl(WebSocket* scope, uint16_t port)
+        : scope(scope), socket(port) {}
 
     void run() {
 
@@ -172,8 +172,8 @@ const std::string& WebSocketConnection::uuid() {
     return uuid_;
 }
 
-WebSocket::WebSocket(uint16_t port, const std::string& cert_file, const std::string& key_file)
-    : pimpl_(std::make_unique<Impl>(this, port, cert_file, key_file)) {}
+WebSocket::WebSocket(uint16_t port)
+    : pimpl_(std::make_unique<Impl>(this, port)) {}
 
 
 void WebSocket::start() {

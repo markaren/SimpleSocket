@@ -1,6 +1,5 @@
 
-
-#include "simple_socket/WebSocket.hpp"
+#include "simple_socket/ws/WebSocket.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/socket_common.hpp"
@@ -10,6 +9,7 @@
 #include "simple_socket/ws/WebSocketConnection.hpp"
 #include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 
+#include <array>
 #include <sstream>
 
 using namespace simple_socket;

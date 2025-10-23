@@ -12,11 +12,6 @@ if (SIMPLE_SOCKET_WITH_WEBSOCKETS)
     add_executable(run_ws run_ws.cpp)
     target_link_libraries(run_ws PRIVATE simple_socket)
 
-    if (SIMPLE_SOCKET_WITH_TLS)
-        add_executable(run_wss run_wss.cpp)
-        target_link_libraries(run_wss PRIVATE simple_socket)
-    endif ()
-
     file(COPY ws_client.html DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif ()
 

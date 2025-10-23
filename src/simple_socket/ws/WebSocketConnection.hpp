@@ -3,7 +3,6 @@
 #define SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP
 
 #include <atomic>
-#include <cstdint>
 #include <iostream>
 #include <mutex>
 #include <random>
@@ -11,9 +10,7 @@
 #include <thread>
 #include <vector>
 
-#include "simple_socket/WebSocket.hpp"
-
-#include <array>
+#include "simple_socket/ws/WebSocket.hpp"
 
 namespace simple_socket {
 
@@ -87,7 +84,7 @@ namespace simple_socket {
             }
         }
 
-        bool closed() const {
+        [[nodiscard]] bool closed() const {
             return closed_;
         }
 
@@ -248,6 +245,6 @@ namespace simple_socket {
             }
         }
     };
-};// namespace simple_socket
+}// namespace simple_socket
 
 #endif//SIMPLE_SOCKET_WEBSOCKET_CONNECTION_HPP

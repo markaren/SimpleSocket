@@ -1,5 +1,5 @@
 
-#include "simple_socket/WebSocket.hpp"
+#include "../include/simple_socket/ws/WebSocket.hpp"
 #include "simple_socket/util/port_query.hpp"
 
 #include <atomic>

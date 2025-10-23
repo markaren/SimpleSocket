@@ -8,7 +8,6 @@ set(publicHeaders
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
         "simple_socket/UnixDomainSocket.hpp"
-        "simple_socket/WebSocket.hpp"
 
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
@@ -19,10 +18,6 @@ set(privateHeaders
         "simple_socket/Socket.hpp"
 
         "simple_socket/util/uuid.hpp"
-
-        "simple_socket/ws/WebSocketConnection.hpp"
-        "simple_socket/ws/WebSocketHandshake.hpp"
-        "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 )
 
 set(sources
@@ -33,10 +28,26 @@ set(sources
         "simple_socket/UnixDomainSocket.cpp"
 
         "simple_socket/util/port_query.cpp"
-
-        "simple_socket/ws/WebSocket.cpp"
-        "simple_socket/ws/WebSocketClient.cpp"
 )
+
+if (SIMPLE_SOCKET_WITH_WEBSOCKETS)
+
+    list(APPEND publicHeaders
+            "simple_socket/ws/WebSocket.hpp"
+    )
+
+    list(APPEND privateHeaders
+            "simple_socket/ws/WebSocketConnection.hpp"
+            "simple_socket/ws/WebSocketHandshake.hpp"
+            "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
+    )
+
+    list(APPEND sources
+            "simple_socket/ws/WebSocket.cpp"
+            "simple_socket/ws/WebSocketClient.cpp"
+    )
+
+endif ()
 
 if (SIMPLE_SOCKET_WITH_MEMORY)
 

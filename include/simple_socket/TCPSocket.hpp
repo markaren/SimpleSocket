@@ -18,7 +18,7 @@ namespace simple_socket {
 
     class TCPServer {
     public:
-        explicit TCPServer(uint16_t port, int backlog = 1, bool useTLS = false, const std::string& cert_file = "", const std::string& key_file = "");
+        explicit TCPServer(uint16_t port, int backlog = 1);
 
         TCPServer(const TCPServer&) = delete;
         TCPServer& operator=(const TCPServer&) = delete;
