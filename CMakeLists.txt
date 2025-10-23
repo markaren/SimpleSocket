@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 project(simple_socket VERSION 0.4.0)
 
 option(SIMPLE_SOCKET_BUILD_TESTS OFF)
-option(SIMPLE_SOCKET_WITH_TLS "Enable TLS (OpenSSL) for WSS" OFF)
+option(SIMPLE_SOCKET_WITH_TLS "Enable TLS (OpenSSL) for WSS and HTTPS" OFF)
 option(SIMPLE_SOCKET_WITH_MQTT "Enable MQTT support" ON)
 option(SIMPLE_SOCKET_WITH_MODBUS "Enable Modbus support" ON)
 option(SIMPLE_SOCKET_WITH_MEMORY "Enable in-memory transport support" ON)

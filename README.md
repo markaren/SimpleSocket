@@ -21,6 +21,11 @@ including Secure WebSockets (wss://), MQTT and https:// support in the HTTP fetc
 ```cmake
 include(FetchContent)
 set(SIMPLE_SOCKET_BUILD_TESTS OFF)
+set(SIMPLE_SOCKET_WITH_TLS OFF/ON)
+set(SIMPLE_SOCKET_WITH_MQTT ON/OFF)
+set(SIMPLE_SOCKET_WITH_MODBUS ON/OFF)
+set(SIMPLE_SOCKET_WITH_MEMORY ON/OFF)
+set(SIMPLE_SOCKET_WITH_WEBSOCKETS ON/OFF)
 FetchContent_Declare(
         SimpleSocket
         GIT_REPOSITORY https://github.com/markaren/SimpleSocket.git
