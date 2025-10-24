@@ -3,11 +3,12 @@ set(publicHeaderDir "${PROJECT_SOURCE_DIR}/include")
 set(publicHeaders
 
         "simple_socket/SimpleConnection.hpp"
-        "simple_socket/SimpleHttpFetcher.hpp"
         "simple_socket/SocketContext.hpp"
         "simple_socket/TCPSocket.hpp"
         "simple_socket/UDPSocket.hpp"
         "simple_socket/UnixDomainSocket.hpp"
+
+        "simple_socket/http/SimpleHttpFetcher.hpp"
 
         "simple_socket/util/byte_conversion.hpp"
         "simple_socket/util/port_query.hpp"
@@ -23,11 +24,13 @@ set(privateHeaders
 )
 
 set(sources
-        "simple_socket/SimpleHttpFetcher.cpp"
+
         "simple_socket/SocketContext.cpp"
         "simple_socket/TCPSocket.cpp"
         "simple_socket/UDPSocket.cpp"
         "simple_socket/UnixDomainSocket.cpp"
+
+        "simple_socket/http/SimpleHttpFetcher.cpp"
 
         "simple_socket/util/port_query.cpp"
 )

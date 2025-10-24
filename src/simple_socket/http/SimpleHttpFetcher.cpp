@@ -1,5 +1,5 @@
 
-#include "simple_socket/SimpleHttpFetcher.hpp"
+#include "simple_socket/http/SimpleHttpFetcher.hpp"
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/util/string_utils.hpp"
 

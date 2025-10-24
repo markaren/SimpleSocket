@@ -2,8 +2,7 @@
 #ifndef SIMPLE_SOCKET_SIMPLEHTTPFETCHER_HPP
 #define SIMPLE_SOCKET_SIMPLEHTTPFETCHER_HPP
 
-#include "TCPSocket.hpp"
-
+#include "simple_socket/TCPSocket.hpp"
 
 #include <optional>
 #include <string>
