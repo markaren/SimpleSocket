@@ -115,7 +115,6 @@ namespace simple_socket {
         std::mutex tx_mtx_;// serialize writes only
         std::atomic_bool closed_{false};
 
-        WebSocket* socket_{};
         std::unique_ptr<SimpleConnection> conn_;
         WebSocketCallbacks callbacks_;
         std::thread thread_;

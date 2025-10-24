@@ -62,8 +62,8 @@ struct WebSocket::Impl {
                 auto ws = std::make_unique<WebSocketConnectionImpl>(callbacks, socket.accept(), WebSocketConnectionImpl::Role::Server);
                 ws->run(handshake);
                 connections.emplace_back(std::move(ws));
-            } catch (std::exception&) {
-                // std::cerr << ex.what() << std::endl;
+            } catch (std::exception& ex) {
+                std::cerr << ex.what() << std::endl;
             }
 
             //cleanup connections

@@ -3,6 +3,7 @@
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/mqtt/mqtt_common.hpp"
+#include "simple_socket/ws/WebSocket.hpp"
 
 #include <iostream>
 #include <mutex>
@@ -10,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <queue>
 
 
 using namespace simple_socket;
@@ -18,16 +20,19 @@ using namespace simple_socket;
 struct MQTTBroker::Impl {
 
     explicit Impl(int port)
-        : server_(port), stop_(false) {}
+        : server_(port), ws_(port + 1), stop_(false) {}
 
     void start() {
         listener_ = std::thread([this] { acceptLoop(); });
+        wsListener_ = std::thread([this] { wsAcceptLoop(); });
     }
 
     void stop() {
         stop_ = true;
         server_.close();
+        ws_.stop();
         if (listener_.joinable()) listener_.join();
+        if (wsListener_.joinable()) wsListener_.join();
     }
 
 private:
@@ -38,8 +43,10 @@ private:
     };
 
     TCPServer server_;
+    WebSocket ws_;
     std::atomic<bool> stop_;
     std::thread listener_;
+    std::thread wsListener_;
 
     std::mutex subsMutex_;
     std::unordered_map<std::string, std::vector<Client*>> subscribers_;
@@ -62,6 +69,88 @@ private:
                 break;
             }
         }
+    }
+
+    void wsAcceptLoop() {
+
+        struct WsWrapper: SimpleConnection {
+
+            WebSocketConnection* connection;
+
+            explicit WsWrapper(WebSocketConnection* c): connection(c) {}
+
+            int read(uint8_t* buffer, size_t size) override {
+                std::unique_lock lock(m_);
+                cv_.wait(lock, [&]{ return closed_ || !queue_.empty(); });
+                if (queue_.empty()) return 0; // closed and no data
+
+                std::string msg = std::move(queue_.front());
+                queue_.pop_front();
+
+                size_t toCopy = std::min(size, msg.size());
+                std::memcpy(buffer, msg.data(), toCopy);
+
+                if (toCopy < msg.size()) {
+                    // put the remainder back to the front so next read continues it
+                    queue_.push_front(msg.substr(toCopy));
+                }
+
+                return static_cast<int>(toCopy);
+            }
+
+            bool write(const uint8_t* data, size_t size) override {
+                return connection->send(data, size);
+            }
+
+            void close() override {
+                {
+                    std::lock_guard lock(m_);
+                    closed_ = true;
+                }
+                cv_.notify_all();
+            }
+
+            void push_back(const std::string& msg) {
+                {
+                    std::lock_guard lock(m_);
+                    queue_.push_back(msg);
+                }
+                cv_.notify_one();
+            }
+
+        private:
+            bool closed_{false};
+            std::deque<std::string> queue_;
+            std::mutex m_;
+            std::condition_variable cv_;
+        };
+
+        std::unordered_map<WebSocketConnection*, WsWrapper*> connections;
+
+        ws_.onOpen = [this, &connections](WebSocketConnection* conn) {
+            std::cout << "MQTTBroker: new WebSocket connection" << std::endl;
+            auto client = std::make_unique<Client>();
+            Client* clientPtr = client.get();
+            clients_.push_back(clientPtr);
+            auto wrapper = std::make_unique<WsWrapper>(conn);
+            connections[conn] = wrapper.get();
+            client->conn = std::move(wrapper);
+
+            std::thread(&Impl::handleClient, this, std::move(client)).detach();
+        };
+        ws_.onMessage = [&connections](WebSocketConnection* conn, const std::string& msg) {
+            std::cout << "MQTTBroker: new message on WebSocket connection: " << msg << std::endl;
+            connections[conn]->push_back(msg);
+        };
+        ws_.onClose = [](WebSocketConnection* conn) {
+            std::cout << "MQTTBroker: WebSocket connection closed" << std::endl;
+        };
+        ws_.start();
+
+        while (!stop_) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        ws_.stop();
     }
 
     void handleClient(std::unique_ptr<Client> c) {
