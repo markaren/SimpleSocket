@@ -9,6 +9,7 @@
 
 #include "simple_socket/ws/WebSocketConnection.hpp"
 #include "simple_socket/ws/WebSocketHandshake.hpp"
+#include "simple_socket/ws/WebSocketHandshakeCommon.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -22,55 +23,19 @@ using namespace simple_socket;
 namespace {
 
     void handshake(SimpleConnection& conn) {
-        // 1) Read full HTTP request headers
-        std::string request;
-        std::vector<unsigned char> buffer(1024);
-        constexpr size_t kMaxHeaderBytes = 16 * 1024;
-        for (;;) {
-            if (request.find("\r\n\r\n") != std::string::npos) break;
-            const int n = conn.read(buffer);
-            if (n <= 0) throwSocketError("Failed to read handshake request from client.");
-            request.append(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(n));
-            if (request.size() > kMaxHeaderBytes) throwSocketError("Handshake request headers too large.");
-        }
 
-        // 2) Split header block
-        const auto hdrEnd = request.find("\r\n\r\n");
-        const std::string headerBlock = request.substr(0, hdrEnd);
+        const auto raw = readHttpHeaderBlock(conn);
+        const auto http = parseHttpHeaders(raw);
 
-        // 3) Parse request line
-        std::istringstream iss(headerBlock);
-        std::string line;
-        if (!std::getline(iss, line)) throwSocketError("Bad HTTP request.");
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        std::string method, path, version;
-        {
-            std::istringstream rl(line);
-            rl >> method >> path >> version;
-        }
-        if (toLower(method) != "get" || toLower(version).rfind("http/1.1", 0) != 0) {
-            throwSocketError("Handshake failed: expected GET HTTP/1.1.");
-        }
-
-        // 4) Parse headers (names to lowercase, values trimmed)
-        std::vector<std::pair<std::string, std::string>> headers;
-        while (std::getline(iss, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            const auto pos = line.find(':');
-            if (pos == std::string::npos) continue;
-            std::string name = toLower(trim(line.substr(0, pos)));
-            std::string value = trim(line.substr(pos + 1));
-            headers.emplace_back(std::move(name), std::move(value));
-        }
-        auto getHeader = [&](const char* key) -> const std::string* {
-            const std::string k = toLower(key);
-            for (auto& kv : headers)
-                if (kv.first == k) return &kv.second;
+        auto getHeader = [&http](const std::string& name) -> const std::string* {
+            const auto it = http.headers.find(toLower(name));
+            if (it != http.headers.end()) {
+                return &it->second;
+            }
             return nullptr;
         };
 
-        // 5) Validate required headers
+        // Validate required headers
         const std::string* hUpgrade = getHeader("Upgrade");
         if (!hUpgrade || toLower(*hUpgrade) != "websocket") {
             throwSocketError("Handshake failed: missing/invalid Upgrade: websocket.");
@@ -88,12 +53,12 @@ namespace {
             throwSocketError("Handshake failed: missing Sec-WebSocket-Key.");
         }
 
-        // 6) Compute Sec-WebSocket-Accept
+        // Compute Sec-WebSocket-Accept
         const std::string clientKey = trim(*hKey);
         char secWebSocketAccept[29] = {};
         WebSocketHandshake::generate(clientKey.data(), secWebSocketAccept);// writes 28 bytes; buffer is NUL-terminated
 
-        // 7) Send 101 Switching Protocols
+        //Send 101 Switching Protocols
         std::ostringstream response;
         response << "HTTP/1.1 101 Switching Protocols\r\n"
                  << "Upgrade: websocket\r\n"

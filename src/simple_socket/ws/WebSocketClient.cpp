@@ -8,6 +8,7 @@
 
 #include "simple_socket/ws/WebSocketConnection.hpp"
 #include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
+#include "simple_socket/ws/WebSocketHandshakeCommon.hpp"
 
 #include <array>
 #include <sstream>
@@ -94,33 +95,6 @@ namespace {
         throw std::invalid_argument("Invalid WebSocket URL: " + url);
     }
 
-    struct HttpResponse {
-        std::string statusLine;
-        std::unordered_map<std::string, std::string> headers;// lower-cased names, trimmed values
-    };
-
-    HttpResponse parseHttpResponseHeaders(const std::string& raw) {
-        HttpResponse r;
-        const auto hdrEnd = raw.find("\r\n\r\n");
-        const auto headerBlock = raw.substr(0, hdrEnd);
-        std::istringstream iss(headerBlock);
-        std::string line;
-
-        if (!std::getline(iss, line)) throwSocketError("Bad HTTP response");
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        r.statusLine = line;
-
-        while (std::getline(iss, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            const auto pos = line.find(':');
-            if (pos == std::string::npos) continue;
-            auto name = toLower(trim(line.substr(0, pos)));
-            auto value = trim(line.substr(pos + 1));
-            r.headers[name] = value;
-        }
-        return r;
-    }
-
     void performHandshake(SimpleConnection& conn, const std::string& url, const std::string& host, uint16_t port) {
 
         std::string path = "/";
@@ -149,21 +123,12 @@ namespace {
             throwSocketError("Failed to send handshake request");
         }
 
-        // Read headers fully
-        std::string response;
-        std::vector<uint8_t> buf(512);
-        constexpr size_t kMaxHeaderBytes = 16 * 1024;
-        while (response.find("\r\n\r\n") == std::string::npos) {
-            const int n = conn.read(buf);
-            if (n <= 0) throwSocketError("Failed to read handshake response");
-            response.append(reinterpret_cast<const char*>(buf.data()), static_cast<size_t>(n));
-            if (response.size() > kMaxHeaderBytes) throwSocketError("Handshake headers too large");
-        }
+        const auto raw = readHttpHeaderBlock(conn);
+        const auto resp = parseHttpHeaders(raw);
 
-        // Parse/validate
-        const auto resp = parseHttpResponseHeaders(response);
-        if (resp.statusLine.find(" 101 ") == std::string::npos &&
-            resp.statusLine.rfind(" 101", resp.statusLine.size() - 3) == std::string::npos) {
+        // validate response
+        if (resp.startLine.find(" 101 ") == std::string::npos &&
+            resp.startLine.rfind(" 101", resp.startLine.size() - 3) == std::string::npos) {
             throwSocketError("Handshake failed: expected HTTP 101");
         }
         auto itUp = resp.headers.find("upgrade");
