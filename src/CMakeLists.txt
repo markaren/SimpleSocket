@@ -43,7 +43,6 @@ if (SIMPLE_SOCKET_WITH_WEBSOCKETS)
 
     list(APPEND privateHeaders
             "simple_socket/ws/WebSocketConnection.hpp"
-            "simple_socket/ws/WebSocketHandshake.hpp"
             "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
     )
 
