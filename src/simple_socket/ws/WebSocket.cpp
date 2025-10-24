@@ -2,7 +2,6 @@
 #include "simple_socket/ws/WebSocket.hpp"
 
 #include "simple_socket/TCPSocket.hpp"
-#include "simple_socket/socket_common.hpp"
 #include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 
 #include "simple_socket/util/uuid.hpp"
@@ -36,8 +35,13 @@ namespace {
         std::ostringstream response;
         response << "HTTP/1.1 101 Switching Protocols\r\n"
                  << "Upgrade: websocket\r\n"
-                 << "Connection: Upgrade\r\n"
-                 << "Sec-WebSocket-Accept: " << secWebSocketAccept << "\r\n\r\n";
+                 << "Connection: Upgrade\r\n";
+        if (auto* val = http.get("sec-websocket-protocol")) {
+            if (val != nullptr && toLower(*val).find("mqtt") != std::string::npos) {
+                response << "Sec-WebSocket-Protocol: mqtt\r\n";
+            }
+        }
+        response << "Sec-WebSocket-Accept: " << secWebSocketAccept << "\r\n\r\n";
 
         const std::string responseStr = response.str();
         if (!conn.write(responseStr)) {
@@ -59,11 +63,14 @@ struct WebSocket::Impl {
 
             try {
                 WebSocketCallbacks callbacks{scope->onOpen, scope->onClose, scope->onMessage};
-                auto ws = std::make_unique<WebSocketConnectionImpl>(callbacks, socket.accept(), WebSocketConnectionImpl::Role::Server);
-                ws->run(handshake);
+                auto conn = socket.accept();
+                handshake(*conn);
+                auto ws = std::make_unique<WebSocketConnectionImpl>(callbacks, std::move(conn), WebSocketConnectionImpl::Role::Server);
+
+                ws->run();
                 connections.emplace_back(std::move(ws));
-            } catch (std::exception& ex) {
-                std::cerr << ex.what() << std::endl;
+            } catch (std::exception&) {
+                // std::cerr << ex.what() << std::endl;
             }
 
             //cleanup connections

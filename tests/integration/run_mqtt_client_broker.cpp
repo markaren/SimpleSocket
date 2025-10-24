@@ -16,40 +16,44 @@ int main() {
     broker.start();
 
     try {
-        // MQTTClient client("127.0.0.1", port, "SimpleSocketClient");
-        // client.connect(false);
-        //
-        // std::string topic1 = "simple_socket/topic1";
-        // std::string topic2 = "simple_socket/topic2";
-        //
-        // client.subscribe(topic1, [topic1](const auto& msg) {
-        //     std::cout << "[" << topic1 << "] Got: " << msg << std::endl;
-        // });
-        //
-        // client.subscribe(topic2, [topic2](const auto& msg) {
-        //     std::cout << "[" << topic2 << "] Got: " << msg << std::endl;
-        // });
-        //
-        // std::atomic_bool stop = false;
-        // std::thread([&client, &stop, topic1, topic2] {
-        //     while (!stop) {
-        //         std::this_thread::sleep_for(std::chrono::seconds(1));
-        //         client.publish(topic1, "Hello from SimpleSocket MQTT!");
-        //         client.publish(topic2, "Another hello from SimpleSocket MQTT!");
-        //     }
-        // }).detach();
-        //
-        // client.run();
-        //
-        // std::thread([&client, topic2] {
-        //     std::this_thread::sleep_for(std::chrono::seconds(3));
-        //     client.unsubscribe(topic2);
-        // }).detach();
+        MQTTClient client("127.0.0.1", port, "SimpleSocketClient");
+        client.connect(false);
+
+        std::string topic1 = "simple_socket/topic1";
+        std::string topic2 = "simple_socket/topic2";
+
+        client.subscribe(topic1, [topic1](const auto& msg) {
+            std::cout << "[" << topic1 << "] Got: " << msg << std::endl;
+        });
+
+        client.subscribe(topic2, [topic2](const auto& msg) {
+            std::cout << "[" << topic2 << "] Got: " << msg << std::endl;
+        });
+
+        client.subscribe("simple_socket/slider", [](const auto& msg) {
+            std::cout << "[simple_socket/slider] Got: " << msg << std::endl;
+        });
+
+        std::atomic_bool stop = false;
+        std::thread([&client, &stop, topic1, topic2] {
+            while (!stop) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                client.publish(topic1, "Hello from SimpleSocket MQTT!");
+                client.publish(topic2, "Another hello from SimpleSocket MQTT!");
+            }
+        }).detach();
+
+        client.run();
+
+        std::thread([&client, topic2] {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            client.unsubscribe(topic2);
+        }).detach();
 
         std::cout << "Press any key to exit..." << std::endl;
         std::cin.get();
-        // stop = true;
-        // client.close();
+        stop = true;
+        client.close();
         broker.stop();
 
     } catch (const std::exception& e) {

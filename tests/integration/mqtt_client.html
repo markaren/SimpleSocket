@@ -11,6 +11,7 @@
     <p id="output"></p>
 </div>
 
+
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 <script>
@@ -18,11 +19,11 @@
 
     client.on("connect", () => {
         console.log("✅ Connected to test.mosquitto.org");
-        client.subscribe("test/topic", (err) => {
+        client.subscribe("simple_socket/topic1", (err) => {
             if (!err) {
-                console.log("📡 Subscribed to test/topic");
+                console.log("📡 Subscribed to simple_socket/topic1");
                 // Publish a message
-                client.publish("test/topic", "Hello from browser!");
+                client.publish("simple_socket/topic1", "Hello from browser!");
             }
         });
     });
@@ -38,6 +39,13 @@
     client.on("close", () => {
         console.log("🔌 Connection closed");
     });
+
+    const slider = document.getElementById("myRange");
+
+    slider.oninput = function() {
+        console.log(this.value);
+        client.publish("simple_socket/slider", this.value);
+    }
 
 </script>
 

@@ -54,9 +54,8 @@ namespace simple_socket {
             buffer.resize(size);
         }
 
-        void run(const std::function<void(SimpleConnection&)>& handshake) {
+        void run() {
 
-            handshake(*conn_);
             if (callbacks_.onOpen) {
                 callbacks_.onOpen(this);
             }
@@ -65,7 +64,6 @@ namespace simple_socket {
                 listen();
             });
         }
-
         bool send(const std::string& message) override {
             const auto frame = buildText(message, role_);
             std::lock_guard lg(tx_mtx_);
@@ -178,6 +176,7 @@ namespace simple_socket {
         }
 
         void listen() {
+
             std::vector<uint8_t> rx;     // accumulated bytes from socket
             std::vector<uint8_t> message;// assembling fragmented messages
             bool continued = false;

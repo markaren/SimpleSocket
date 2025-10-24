@@ -53,24 +53,6 @@ private:
     std::vector<Client*> clients_;
 
 
-    void acceptLoop() {
-
-        while (!stop_) {
-            try {
-                auto conn = server_.accept();
-
-                auto client = std::make_unique<Client>();
-                client->conn = std::move(conn);
-                Client* clientPtr = client.get();
-                clients_.push_back(clientPtr);
-
-                std::thread(&Impl::handleClient, this, std::move(client)).detach();
-            } catch (std::exception&) {
-                break;
-            }
-        }
-    }
-
     void wsAcceptLoop() {
 
         struct WsWrapper: SimpleConnection {
@@ -128,7 +110,6 @@ private:
         std::unordered_map<WebSocketConnection*, WsWrapper*> connections;
 
         ws_.onOpen = [this, &connections](WebSocketConnection* conn) {
-            std::cout << "MQTTBroker: new WebSocket connection" << std::endl;
             auto client = std::make_unique<Client>();
             Client* clientPtr = client.get();
             clients_.push_back(clientPtr);
@@ -139,11 +120,13 @@ private:
             std::thread(&Impl::handleClient, this, std::move(client)).detach();
         };
         ws_.onMessage = [&connections](WebSocketConnection* conn, const std::string& msg) {
-            std::cout << "MQTTBroker: new message on WebSocket connection: " << msg << std::endl;
+            std::cout << "MQTTBroker: WebSocket message received (" << msg.size() << " bytes)" << std::endl;
             connections[conn]->push_back(msg);
         };
-        ws_.onClose = [](WebSocketConnection* conn) {
+        ws_.onClose = [&connections](WebSocketConnection* conn) {
             std::cout << "MQTTBroker: WebSocket connection closed" << std::endl;
+            // connections.erase(conn);
+
         };
         ws_.start();
 
@@ -151,6 +134,25 @@ private:
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         ws_.stop();
+    }
+
+
+    void acceptLoop() {
+
+        while (!stop_) {
+            try {
+                auto conn = server_.accept();
+
+                auto client = std::make_unique<Client>();
+                client->conn = std::move(conn);
+                Client* clientPtr = client.get();
+                clients_.push_back(clientPtr);
+
+                std::thread(&Impl::handleClient, this, std::move(client)).detach();
+            } catch (std::exception&) {
+                break;
+            }
+        }
     }
 
     void handleClient(std::unique_ptr<Client> c) {
@@ -229,6 +231,8 @@ private:
                             targets = it->second;
                         }
 
+                        if (targets.empty()) return;
+
                         // Build QoS 0 PUBLISH to subscribers
                         auto packetTopic = encodeShortString(topic);
                         std::vector<uint8_t> pl;
@@ -244,7 +248,6 @@ private:
                         packet.insert(packet.end(), pl.begin(), pl.end());
 
                         for (auto* sub : targets) {
-                            // std::cout << "MQTTBroker: delivering message on topic '" << topic << "' to client '" << sub->clientId << "'" << std::endl;
                             sub->conn->write(packet);
                         }
                     } break;
