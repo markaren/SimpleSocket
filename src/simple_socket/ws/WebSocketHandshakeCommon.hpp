@@ -16,6 +16,11 @@ namespace simple_socket {
     struct HttpHeaders {
         std::string startLine;
         std::unordered_map<std::string, std::string> headers; // lower-cased names, trimmed values
+
+        const std::string* get(const std::string& name) const {
+            const auto it = headers.find(toLower(name));
+            return it != headers.end() ? &it->second : nullptr;
+        }
     };
 
     // Read raw HTTP header block (including trailing "\r\n\r\n").
@@ -57,6 +62,49 @@ namespace simple_socket {
             out.headers[name] = value;
         }
         return out;
+    }
+
+    inline void validateCommonHandshakeRequest(const HttpHeaders& http) {
+
+        const std::string* hUpgrade = http.get("upgrade");
+        if (!hUpgrade || *hUpgrade != "websocket")
+            throwSocketError("Handshake failed: missing/invalid Upgrade: websocket.");
+
+        const std::string* hConn = http.get("connection");
+        if (!hConn || toLower(*hConn).find("upgrade") == std::string::npos)
+            throwSocketError("Handshake failed: missing/invalid Connection: Upgrade.");
+    }
+
+    // Validate server-side request headers and return the trimmed Sec-WebSocket-Key.
+    inline std::string validateServerHandshakeRequest(const HttpHeaders& http) {
+        validateCommonHandshakeRequest(http);
+
+        const std::string* hVersion = http.get("sec-websocket-version");
+        if (!hVersion || trim(*hVersion) != "13")
+            throwSocketError("Handshake failed: unsupported Sec-WebSocket-Version.");
+
+        const std::string* hKey = http.get("sec-websocket-key");
+        if (!hKey || trim(*hKey).empty())
+            throwSocketError("Handshake failed: missing Sec-WebSocket-Key.");
+
+        return trim(*hKey);
+    }
+
+    // Validate client-side response headers against expected Accept value.
+    inline void validateClientHandshakeResponse(const HttpHeaders& http, const std::string& expectedAccept) {
+        // check HTTP status 101
+        const auto& start = http.startLine;
+        const bool is101 = (start.find(" 101 ") != std::string::npos) ||
+                           (start.size() >= 3 && start.rfind(" 101", start.size() - 3) != std::string::npos);
+        if (!is101) throwSocketError("Handshake failed: expected HTTP 101");
+
+       validateCommonHandshakeRequest(http);
+
+        auto itAcc = http.get("sec-websocket-accept");
+        if (!itAcc) throwSocketError("Handshake failed: missing Sec-WebSocket-Accept");
+
+        if (trim(*itAcc) != expectedAccept)
+            throwSocketError("Handshake failed: Sec-WebSocket-Accept mismatch");
     }
 
 } // namespace simple_socket

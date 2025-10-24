@@ -126,29 +126,12 @@ namespace {
         const auto raw = readHttpHeaderBlock(conn);
         const auto resp = parseHttpHeaders(raw);
 
-        // validate response
-        if (resp.startLine.find(" 101 ") == std::string::npos &&
-            resp.startLine.rfind(" 101", resp.startLine.size() - 3) == std::string::npos) {
-            throwSocketError("Handshake failed: expected HTTP 101");
-        }
-        auto itUp = resp.headers.find("upgrade");
-        if (itUp == resp.headers.end() || toLower(itUp->second) != "websocket") {
-            throwSocketError("Handshake failed: invalid Upgrade header");
-        }
-        auto itConn = resp.headers.find("connection");
-        if (itConn == resp.headers.end() || toLower(itConn->second).find("upgrade") == std::string::npos) {
-            throwSocketError("Handshake failed: invalid Connection header");
-        }
-        auto itAcc = resp.headers.find("sec-websocket-accept");
-        if (itAcc == resp.headers.end()) throwSocketError("Handshake failed: missing Sec-WebSocket-Accept");
-
         // Compute expected accept from the exact client key we sent
         char acceptBuf[29] = {};
         WebSocketHandshakeKeyGen::generate(secKey, acceptBuf);// writes 28 chars
         const std::string expectedAccept(acceptBuf, acceptBuf + 28);
-        if (trim(itAcc->second) != expectedAccept) {
-            throwSocketError("Handshake failed: Sec-WebSocket-Accept mismatch");
-        }
+        validateClientHandshakeResponse(resp ,expectedAccept);
+
     }
 }// namespace
 
@@ -174,14 +157,14 @@ struct WebSocketClient::Impl {
         });
     }
 
-    void send(const std::string& message) {
+    bool send(const std::string& message) {
 
-        conn->send(message);
+        return conn->send(message);
     }
 
-    void send(const uint8_t* message, size_t len) {
+    bool send(const uint8_t* message, size_t len) {
 
-        conn->send(message, len);
+        return conn->send(message, len);
     }
 
     void close() {

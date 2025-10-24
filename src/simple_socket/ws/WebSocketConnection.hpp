@@ -66,16 +66,16 @@ namespace simple_socket {
             });
         }
 
-        void send(const std::string& message) override {
+        bool send(const std::string& message) override {
             const auto frame = buildText(message, role_);
             std::lock_guard lg(tx_mtx_);
-            conn_->write(frame);
+            return conn_->write(frame);
         }
 
-        void send(const uint8_t* message, size_t len) override {
+        bool send(const uint8_t* message, size_t len) override {
             const auto frame = buildBin(message, len, role_);
             std::lock_guard lg(tx_mtx_);
-            conn_->write(frame);
+            return conn_->write(frame);
         }
 
         void close(bool self) {
@@ -119,7 +119,6 @@ namespace simple_socket {
         std::unique_ptr<SimpleConnection> conn_;
         WebSocketCallbacks callbacks_;
         std::thread thread_;
-
 
         std::vector<unsigned char> buffer;
 

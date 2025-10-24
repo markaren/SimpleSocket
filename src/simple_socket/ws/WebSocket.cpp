@@ -3,12 +3,11 @@
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/socket_common.hpp"
+#include "simple_socket/ws/WebSocketHandshakeKeyGen.hpp"
 
-#include "simple_socket/util/string_utils.hpp"
 #include "simple_socket/util/uuid.hpp"
 
 #include "simple_socket/ws/WebSocketConnection.hpp"
-#include "simple_socket/ws/WebSocketHandshake.hpp"
 #include "simple_socket/ws/WebSocketHandshakeCommon.hpp"
 
 #include <algorithm>
@@ -27,36 +26,11 @@ namespace {
         const auto raw = readHttpHeaderBlock(conn);
         const auto http = parseHttpHeaders(raw);
 
-        auto getHeader = [&http](const std::string& name) -> const std::string* {
-            const auto it = http.headers.find(toLower(name));
-            if (it != http.headers.end()) {
-                return &it->second;
-            }
-            return nullptr;
-        };
-
-        // Validate required headers
-        const std::string* hUpgrade = getHeader("Upgrade");
-        if (!hUpgrade || toLower(*hUpgrade) != "websocket") {
-            throwSocketError("Handshake failed: missing/invalid Upgrade: websocket.");
-        }
-        const std::string* hConn = getHeader("Connection");
-        if (!hConn || toLower(*hConn).find("upgrade") == std::string::npos) {
-            throwSocketError("Handshake failed: missing/invalid Connection: Upgrade.");
-        }
-        const std::string* hVersion = getHeader("Sec-WebSocket-Version");
-        if (!hVersion || trim(*hVersion) != "13") {
-            throwSocketError("Handshake failed: unsupported Sec-WebSocket-Version.");
-        }
-        const std::string* hKey = getHeader("Sec-WebSocket-Key");
-        if (!hKey || trim(*hKey).empty()) {
-            throwSocketError("Handshake failed: missing Sec-WebSocket-Key.");
-        }
+        const auto clientKey = validateServerHandshakeRequest(http);
 
         // Compute Sec-WebSocket-Accept
-        const std::string clientKey = trim(*hKey);
         char secWebSocketAccept[29] = {};
-        WebSocketHandshake::generate(clientKey.data(), secWebSocketAccept);// writes 28 bytes; buffer is NUL-terminated
+        WebSocketHandshakeKeyGen::generate(clientKey, secWebSocketAccept);// writes 28 bytes; buffer is NUL-terminated
 
         //Send 101 Switching Protocols
         std::ostringstream response;
