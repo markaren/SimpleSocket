@@ -37,5 +37,7 @@ if (SIMPLE_SOCKET_WITH_MQTT)
 
     add_executable(run_mqtt_client_broker run_mqtt_client_broker.cpp)
     target_link_libraries(run_mqtt_client_broker PRIVATE simple_socket)
+
+    file(COPY mqtt_client.html DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif ()
 

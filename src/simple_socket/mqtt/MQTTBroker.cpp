@@ -64,7 +64,7 @@ private:
             int read(uint8_t* buffer, size_t size) override {
                 std::unique_lock lock(m_);
                 cv_.wait(lock, [&]{ return closed_ || !queue_.empty(); });
-                if (queue_.empty()) return 0; // closed and no data
+                if (queue_.empty()) return -1; // closed and no data
 
                 std::string msg = std::move(queue_.front());
                 queue_.pop_front();
@@ -81,6 +81,7 @@ private:
             }
 
             bool write(const uint8_t* data, size_t size) override {
+                if (closed_) return false;
                 return connection->send(data, size);
             }
 
@@ -100,8 +101,12 @@ private:
                 cv_.notify_one();
             }
 
+            [[nodiscard]] bool closed() const {
+                return closed_;
+            }
+
         private:
-            bool closed_{false};
+            std::atomic_bool closed_{false};
             std::deque<std::string> queue_;
             std::mutex m_;
             std::condition_variable cv_;
@@ -125,13 +130,22 @@ private:
         };
         ws_.onClose = [&connections](WebSocketConnection* conn) {
             std::cout << "MQTTBroker: WebSocket connection closed" << std::endl;
-            // connections.erase(conn);
+            connections[conn]->close();
 
         };
         ws_.start();
 
         while (!stop_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            // remove closed connections
+            for (auto it = connections.begin(); it != connections.end();) {
+                if (it->second->closed()) {
+                    it = connections.erase(it);
+                } else {
+                    ++it;
+                }
+            }
         }
         ws_.stop();
     }
@@ -222,16 +236,10 @@ private:
                         if (p > buf.size()) return;
                         std::string message(reinterpret_cast<const char*>(&buf[p]), buf.size() - p);
 
-                        // Snapshot subscribers to avoid holding the lock during writes
-                        std::vector<Client*> targets;
                         {
                             std::lock_guard lock(subsMutex_);
-                            auto it = subscribers_.find(topic);
-                            if (it == subscribers_.end()) return;
-                            targets = it->second;
+                            if (subscribers_.empty() || !subscribers_.contains(topic)) return;
                         }
-
-                        if (targets.empty()) return;
 
                         // Build QoS 0 PUBLISH to subscribers
                         auto packetTopic = encodeShortString(topic);
@@ -247,8 +255,13 @@ private:
                         packet.insert(packet.end(), len.begin(), len.end());
                         packet.insert(packet.end(), pl.begin(), pl.end());
 
-                        for (auto* sub : targets) {
-                            sub->conn->write(packet);
+                        std::lock_guard lock(subsMutex_);
+                        for (auto [t,  subs] : subscribers_) {
+                            if (t == topic) {
+                                for (auto* sub : subs) {
+                                    sub->conn->write(packet);
+                                }
+                            }
                         }
                     } break;
 

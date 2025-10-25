@@ -34,9 +34,8 @@ int main() {
             std::cout << "[simple_socket/slider] Got: " << msg << std::endl;
         });
 
-        std::atomic_bool stop = false;
-        std::thread([&client, &stop, topic1, topic2] {
-            while (!stop) {
+        std::thread([&client, topic1, topic2] {
+            while (true) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 client.publish(topic1, "Hello from SimpleSocket MQTT!");
                 client.publish(topic2, "Another hello from SimpleSocket MQTT!");
@@ -50,9 +49,12 @@ int main() {
             client.unsubscribe(topic2);
         }).detach();
 
+#ifdef _WIN32
+        system("start mqtt_client.html");
+#endif
+
         std::cout << "Press any key to exit..." << std::endl;
         std::cin.get();
-        stop = true;
         client.close();
         broker.stop();
 
