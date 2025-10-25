@@ -3,7 +3,10 @@
 
 #include "simple_socket/TCPSocket.hpp"
 #include "simple_socket/mqtt/mqtt_common.hpp"
+
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
 #include "simple_socket/ws/WebSocket.hpp"
+#endif
 
 #include <iostream>
 #include <mutex>
@@ -11,7 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <queue>
+#include <deque>
 
 
 using namespace simple_socket;
@@ -24,15 +27,19 @@ struct MQTTBroker::Impl {
 
     void start() {
         listener_ = std::thread([this] { acceptLoop(); });
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
         wsListener_ = std::thread([this] { wsAcceptLoop(); });
+#endif
     }
 
     void stop() {
         stop_ = true;
         server_.close();
-        ws_.stop();
         if (listener_.joinable()) listener_.join();
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
+        ws_.stop();
         if (wsListener_.joinable()) wsListener_.join();
+#endif
     }
 
 private:
@@ -42,8 +49,12 @@ private:
         std::unordered_set<std::string> topics;
     };
 
-    TCPServer server_;
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
     WebSocket ws_;
+#endif
+
+    TCPServer server_;
+
     std::atomic<bool> stop_;
     std::thread listener_;
     std::thread wsListener_;
@@ -52,19 +63,18 @@ private:
     std::unordered_map<std::string, std::vector<Client*>> subscribers_;
     std::vector<Client*> clients_;
 
-
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
     void wsAcceptLoop() {
 
         struct WsWrapper: SimpleConnection {
 
-            WebSocketConnection* connection;
 
             explicit WsWrapper(WebSocketConnection* c): connection(c) {}
 
             int read(uint8_t* buffer, size_t size) override {
                 std::unique_lock lock(m_);
-                cv_.wait(lock, [&]{ return closed_ || !queue_.empty(); });
-                if (queue_.empty()) return -1; // closed and no data
+                cv_.wait(lock, [&] { return closed_ || !queue_.empty(); });
+                if (queue_.empty()) return -1;// closed and no data
 
                 std::string msg = std::move(queue_.front());
                 queue_.pop_front();
@@ -110,6 +120,7 @@ private:
             std::deque<std::string> queue_;
             std::mutex m_;
             std::condition_variable cv_;
+            WebSocketConnection* connection;
         };
 
         std::unordered_map<WebSocketConnection*, WsWrapper*> connections;
@@ -131,7 +142,6 @@ private:
         ws_.onClose = [&connections](WebSocketConnection* conn) {
             std::cout << "MQTTBroker: WebSocket connection closed" << std::endl;
             connections[conn]->close();
-
         };
         ws_.start();
 
@@ -149,7 +159,7 @@ private:
         }
         ws_.stop();
     }
-
+#endif
 
     void acceptLoop() {
 
@@ -197,7 +207,7 @@ private:
 
             // CONNACK
             const std::vector<uint8_t> connack = {CONNACK, 0x02, 0x00, 0x00};
-            c->conn->write(connack);
+            if (!c->conn->write(connack)) return;
 
             // Main loop
             bool running = true;
@@ -208,8 +218,8 @@ private:
                 std::vector<uint8_t> buf(rem);
                 if (rem > 0 && !c->conn->readExact(buf.data(), rem)) break;
 
-                const uint8_t typeNibble = static_cast<uint8_t>(hdr & 0xF0);
-                const uint8_t flagsNibble = static_cast<uint8_t>(hdr & 0x0F);
+                const auto typeNibble = static_cast<uint8_t>(hdr & 0xF0);
+                const auto flagsNibble = static_cast<uint8_t>(hdr & 0x0F);
 
                 switch (typeNibble) {
                     case (PUBLISH & 0xF0): {
@@ -256,11 +266,20 @@ private:
                         packet.insert(packet.end(), pl.begin(), pl.end());
 
                         std::lock_guard lock(subsMutex_);
-                        for (auto [t,  subs] : subscribers_) {
-                            if (t == topic) {
+                        for (auto it = subscribers_.begin(); it != subscribers_.end(); ) {
+                            if (it->first == topic) {
+                                auto& subs = it->second;
+                                bool erased = false;
                                 for (auto* sub : subs) {
-                                    sub->conn->write(packet);
+                                    if (!sub->conn->write(packet)) {
+                                        it = subscribers_.erase(it);
+                                        erased = true;
+                                        break; // exit inner loop
+                                    }
                                 }
+                                if (!erased) ++it;
+                            } else {
+                                ++it;
                             }
                         }
                     } break;
@@ -291,7 +310,9 @@ private:
                                 SUBACK, 0x03,
                                 static_cast<uint8_t>(pid >> 8), static_cast<uint8_t>(pid & 0xFF),
                                 0x00};
-                        c->conn->write(suback);
+                        if (!c->conn->write(suback)) {
+                            running = false;
+                        }
                     } break;
 
                     case (UNSUBSCRIBE & 0xF0): {
@@ -317,13 +338,17 @@ private:
                         const std::vector<uint8_t> unsuback = {
                                 UNSUBACK, 0x02,
                                 static_cast<uint8_t>(pid >> 8), static_cast<uint8_t>(pid & 0xFF)};
-                        c->conn->write(unsuback);
+                        if (!c->conn->write(unsuback)) {
+                            running = false;
+                        }
                     } break;
 
                     case PINGREQ: {
                         if (flagsNibble != 0x00) break;
                         const std::vector<uint8_t> pingresp = {PINGRESP, 0x00};
-                        c->conn->write(pingresp);
+                        if (!c->conn->write(pingresp)) {
+                            running = false;
+                        }
                     } break;
 
                     case DISCONNECT:

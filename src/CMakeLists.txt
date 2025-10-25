@@ -117,6 +117,9 @@ if (SIMPLE_SOCKET_WITH_TLS)
     target_compile_definitions(simple_socket PRIVATE SIMPLE_SOCKET_WITH_TLS=1)
     target_link_libraries(simple_socket PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 endif ()
+if (SIMPLE_SOCKET_WITH_WEBSOCKETS)
+    target_compile_definitions(simple_socket PRIVATE SIMPLE_SOCKET_WITH_WEBSOCKETS=1)
+endif ()
 
 target_include_directories(simple_socket
         PUBLIC

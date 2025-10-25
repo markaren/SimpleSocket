@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WS client</title>
+    <title>MQTT client</title>
 </head>
 <body>
 
@@ -19,9 +19,9 @@
 
     client.on("connect", () => {
         console.log("✅ Connected to test.mosquitto.org");
-        client.subscribe("simple_socket/topic1", (err) => {
+        client.subscribe("simple_socket/slider", (err) => {
             if (!err) {
-                console.log("📡 Subscribed to simple_socket/topic1");
+                console.log("📡 Subscribed to simple_socket/slider");
                 // Publish a message
                 client.publish("simple_socket/topic1", "Hello from browser!");
             }
@@ -30,6 +30,7 @@
 
     client.on("message", (topic, message) => {
         console.log(`📥 Message received on ${topic}: ${message.toString()}`);
+        document.getElementById("output").innerText = message.toString();
     });
 
     client.on("error", (err) => {
