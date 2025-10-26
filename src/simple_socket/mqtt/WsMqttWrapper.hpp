@@ -7,6 +7,9 @@
 
 #include "simple_socket/ws/WebSocket.hpp"
 
+#include <atomic>
+#include <condition_variable>
+#include <cstring>
 #include <deque>
 #include <mutex>
 
