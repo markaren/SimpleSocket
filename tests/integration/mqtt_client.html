@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MQTT client</title>
+</head>
+<body>
+
+<div class="slidecontainer">
+    <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+    <p id="output"></p>
+</div>
+
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<script>
+    const client = mqtt.connect("ws://127.0.0.1:1884");
+
+    client.on("connect", () => {
+        console.log("✅ Connected to test.mosquitto.org");
+        client.subscribe("simple_socket/slider", (err) => {
+            if (!err) {
+                console.log("📡 Subscribed to simple_socket/slider");
+                // Publish a message
+                client.publish("simple_socket/topic1", "Hello from browser!");
+            }
+        });
+    });
+
+    client.on("message", (topic, message) => {
+        console.log(`📥 Message received on ${topic}: ${message.toString()}`);
+        document.getElementById("output").innerText = message.toString();
+    });
+
+    client.on("error", (err) => {
+        console.log("❌ Connection error: " + err.message);
+    });
+
+    client.on("close", () => {
+        console.log("🔌 Connection closed");
+    });
+
+    const slider = document.getElementById("myRange");
+
+    slider.oninput = function() {
+        console.log(this.value);
+        client.publish("simple_socket/slider", this.value);
+    }
+
+</script>
+
+</body>
+</html>

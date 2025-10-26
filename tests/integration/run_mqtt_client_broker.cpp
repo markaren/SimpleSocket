@@ -10,13 +10,14 @@ using namespace simple_socket;
 
 int main() {
 
-    int port = 1883;
+    int tcpPort = 1883;
+    int wsPort = tcpPort+1;
 
-    MQTTBroker broker(port);
+    MQTTBroker broker(tcpPort, wsPort);
     broker.start();
 
     try {
-        MQTTClient client("127.0.0.1", port, "SimpleSocketClient");
+        MQTTClient client("127.0.0.1", tcpPort, "SimpleSocketClient");
         client.connect(false);
 
         std::string topic1 = "simple_socket/topic1";
@@ -30,14 +31,18 @@ int main() {
             std::cout << "[" << topic2 << "] Got: " << msg << std::endl;
         });
 
-        std::atomic_bool stop = false;
-        std::thread([&client, &stop, topic1, topic2] {
+        client.subscribe("simple_socket/slider", [](const auto& msg) {
+            std::cout << "[simple_socket/slider] Got: " << msg << std::endl;
+        });
+
+        std::atomic_bool stop;
+        auto clientThread = std::thread([&client, topic1, topic2, &stop] {
             while (!stop) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 client.publish(topic1, "Hello from SimpleSocket MQTT!");
                 client.publish(topic2, "Another hello from SimpleSocket MQTT!");
             }
-        }).detach();
+        });
 
         client.run();
 
@@ -46,9 +51,16 @@ int main() {
             client.unsubscribe(topic2);
         }).detach();
 
+#ifdef _WIN32
+        system("start mqtt_client.html");
+#endif
+
         std::cout << "Press any key to exit..." << std::endl;
         std::cin.get();
         stop = true;
+        if (clientThread.joinable()) {
+            clientThread.join();
+        }
         client.close();
         broker.stop();
 

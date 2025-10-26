@@ -148,13 +148,13 @@ struct WebSocketClient::Impl {
 
         const auto [host, port] = parseWebSocketURL(url);
         auto c = ctx_.connect(host, port, useTLS);
+        performHandshake(*c, url, host, port);
 
         WebSocketCallbacks callbacks{scope_->onOpen, scope_->onClose, scope_->onMessage};
         conn = std::make_unique<WebSocketConnectionImpl>(callbacks, std::move(c), WebSocketConnectionImpl::Role::Client);
         conn->setBufferSize(bufferSize);
-        conn->run([url, host, port](SimpleConnection& conn) {
-            performHandshake(conn, url, host, port);
-        });
+
+        conn->run();
     }
 
     bool send(const std::string& message) {
