@@ -8,8 +8,11 @@ namespace simple_socket {
 
     class MQTTBroker {
     public:
-        explicit MQTTBroker(int port);
+        explicit MQTTBroker(int tcpPort);
 
+#ifdef SIMPLE_SOCKET_WITH_WEBSOCKETS
+        MQTTBroker(int tcpPort, int wsPort);
+#endif
         void start();
 
         void stop();
