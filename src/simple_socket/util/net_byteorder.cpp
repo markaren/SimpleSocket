@@ -7,10 +7,18 @@
 
 #include "simple_socket/util/net_byteorder.hpp"
 
-uint32_t simple_socket::ss_htons(uint16_t hostshort) {
+uint16_t simple_socket::ss_htons(uint16_t hostshort) {
     return ::htons(hostshort);
 }
 
-uint16_t simple_socket::ss_ntohs(uint32_t netshort) {
-    return ::ntohs(static_cast<uint16_t>(netshort));
+uint16_t simple_socket::ss_ntohs(uint16_t netshort) {
+    return ::ntohs(netshort);
+}
+
+uint32_t simple_socket::ss_htonl(uint32_t netlong) {
+    return ::htonl(netlong);
+}
+
+uint32_t simple_socket::ss_ntohl(uint32_t netlong) {
+    return ::ntohl(netlong);
 }
