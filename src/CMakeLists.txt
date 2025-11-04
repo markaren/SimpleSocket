@@ -32,6 +32,7 @@ set(sources
 
         "simple_socket/http/SimpleHttpFetcher.cpp"
 
+        "simple_socket/util/net_byteorder.cpp"
         "simple_socket/util/port_query.cpp"
 )
 
